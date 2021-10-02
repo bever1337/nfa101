@@ -155,9 +155,12 @@ mod tests {
 
     #[test]
     fn supports_literals_and_concatenation() {
+        // Simplest NFA, a single literal
         println!("{:#?}", FA::from_literal('A'));
+        // An epsilon transition is an edge with no value
+        println!("{:#?}", Edge(0, None, 1));
         println!(
-            "Debug: Concatenate a, p, p, l, e:{:#?}",
+            "Debug: concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{:#?}",
             FA::from_composed_concatenation_closure(vec![
                 FA::from_literal('A').unwrap(),
                 FA::from_literal('P').unwrap(),
@@ -167,6 +170,7 @@ mod tests {
             ])
             .unwrap()
         );
+        println!("Literal 'A':\n{}", FA::from_literal('A').unwrap());
         println!(
             "Concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{}",
             FA::from_composed_concatenation_closure(vec![

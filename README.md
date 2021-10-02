@@ -13,9 +13,9 @@ I naively wanted to pattern match an arbitrary stream of data using regular expr
 Input:
 
 ```rust
-println!("{}", FA::from_literal('A').unwrap());
+println!("Literal 'A':\n{}", FA::from_literal('A').unwrap());
 println!(
-    "{}",
+    "Concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{}",
     FA::from_composed_concatenation_closure(vec![
         FA::from_literal('A').unwrap(),
         FA::from_literal('P').unwrap(),
@@ -30,6 +30,7 @@ println!(
 Output:
 
 ```
+Literal 'A':
 Finite Automata = (
    Q: { 0, 1 },
    Σ: { 0..255 },
@@ -40,6 +41,7 @@ Finite Automata = (
    F: { 1 }
 )
 
+Concatenate {a}, {p}, {p}, {l}, {e}:
 Finite Automata = (
    Q: { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 },
    Σ: { 0..255 },
@@ -63,25 +65,28 @@ Finite Automata = (
 
 1. From literal ✓
 
+Input:
+
 ```rust
-FA::from_literal('A')
-/*
+// Simplest NFA, a single literal
+println!("{:#?}", FA::from_literal('A'));
+// An epsilon transition is an edge with no value
+println!("{:#?}", Edge(0, None, 1));
+```
+
+Output:
+
+```
 Ok(
     FA {
         matches: [1],
         states: [
-            [Edge(0, Some('A'), 1)],
+            [Edge(0, Some('A', ), 1)],
             [],
         ],
     },
 )
-*/
-```
-
-```rust
-// An epsilon is an empty input, implemented as:
 Edge(0, None, 1)
-// returns: Edge(0, None, 1)
 ```
 
 2. Union
@@ -93,7 +98,7 @@ Edge(0, None, 1)
 ```rust
 // Concatenation is a binary operation composed left-to-right
 println!(
-    "Concatenate a, p, p, l, e:\n{}",
+    "Debug: concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{:#?}",
     FA::from_composed_concatenation_closure(vec![
         FA::from_literal('A').unwrap(),
         FA::from_literal('P').unwrap(),
@@ -104,25 +109,23 @@ println!(
     .unwrap()
 );
 /**
-Concatenate a, p, p, l, e:
-Finite Automata = (
-   Q: { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 },
-   Σ: { 0..255 },
-   δ: (Q, Σ) -> [Q],
-     0: A -> { 1 }
-     1: ε -> { 2 }
-     2: P -> { 3 }
-     3: ε -> { 4 }
-     4: P -> { 5 }
-     5: ε -> { 6 }
-     6: L -> { 7 }
-     7: ε -> { 8 }
-     8: E -> { 9 }
-     9:
-   q0: 0,
-   F: { 9 }
-)
-*/
+Debug: concatenate {a}, {p}, {p}, {l}, {e}:
+FA {
+    matches: [9],
+    states: [
+        [Edge(0, Some('A'), 1)],
+        [Edge(1, None, 2)],
+        [Edge(2, Some('P'), 3)],
+        [Edge(3, None, 4)],
+        [Edge(4, Some('P'), 5)],
+        [Edge(5, None, 6)],
+        [Edge(6, Some('L'), 7)],
+        [Edge(7, None, 8)],
+        [Edge(8, Some('E'), 9)],
+        [],
+    ],
+}
+**/
 ```
 
 7. klenne star
