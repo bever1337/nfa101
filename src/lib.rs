@@ -1,9 +1,5 @@
 #[cfg(test)]
 mod tests {
-    // use regex_syntax::hir::{Hir, Visitor};
-    // use regex_syntax::hir::{visit, Hir, Visitor};
-    // use regex_syntax::Parser;
-    // use std::collections::HashMap;
     use std::fmt;
 
     pub type Vertex = usize;
@@ -12,25 +8,6 @@ mod tests {
 
     #[derive(Clone, Debug)]
     pub struct Edge(Vertex, Transition, Vertex);
-
-    // impl Edge {
-    //     fn is_epsilon(&self) -> bool {
-    //         match &self.1 {
-    //             Some(_) => false,
-    //             None => true,
-    //         }
-    //     }
-    // }
-
-    // impl fmt::Display for Edge {
-    //     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    //         let c = match self.1 {
-    //             Some(character) => character,
-    //             None => 'ε',
-    //         };
-    //         write!(f, "( {} ) -- {} --> ( {} )", self.0, c, self.2)
-    //     }
-    // }
 
     pub type State = Vec<Edge>;
 
@@ -48,6 +25,10 @@ mod tests {
             })
         }
 
+        // concatenation is a binary operation composed left-to-right
+        // machine_c = machine_a ⋅ machine_b
+        // machine_e = machine_c ⋅ machine_d
+        // machine_o = machine_a ⋅ machine_b ⋅ ... ⋅ machine_n
         fn from_composed_concatenation_closure(machines: Vec<FA>) -> Result<FA, &'static str> {
             match machines.len() {
                 0 | 1 => return Err("Concatenation requires two or more machines"),
@@ -55,49 +36,54 @@ mod tests {
             };
 
             let mut machines_iterator = machines.iter();
-            let machine_one: &FA = machines_iterator.next().unwrap();
-            match machine_one.matches.len() {
+            // "push" machine_a to machine_c
+            let mut machine_c: FA = machines_iterator.next().unwrap().clone(); // length already checked
+            match machine_c.matches.len() {
                 0 => return Err("No match states, cannot concatenate machine"),
                 _ => {}
             };
 
-            let mut machine_three = FA {
-                matches: machine_one.matches.to_vec(),
-                states: machine_one.states.to_vec(),
-            };
-
+            // On first loop where n = 1, machine_n = machine_b
             for machine_n in machines_iterator {
                 match machine_n.matches.len() {
                     0 => return Err("No match states, cannot concatenate machine"),
                     _ => {}
                 };
-                let last_index = machine_three.states.len();
-                for previous_match in machine_three.matches {
-                    machine_three.states[previous_match].append(&mut vec![Edge(
-                        previous_match,
+
+                // q0 (initial state) of machine_n becomes next, unused state of machine_c
+                let machine_n_next_q0 = machine_c.states.len();
+
+                // Push epsilon transitions to q0 (initial state) of machine_n from F (match states) of machine_a
+                // machine_a was already "pushed" to machine_c with corrected state IDs, so we reference F of machine_a by F of machine_c
+                for machine_c_match in machine_c.matches {
+                    machine_c.states[machine_c_match].push(Edge(
+                        machine_c_match,
                         None,
-                        last_index,
-                    )]);
+                        machine_n_next_q0,
+                    ));
                 }
-                machine_three.states.append(
-                    &mut machine_n
-                        .states
-                        .iter()
-                        .map(|edges| {
-                            edges
-                                .iter()
-                                .map(|edge| Edge(edge.0 + last_index, edge.1, edge.2 + last_index))
-                                .collect::<Vec<Edge>>()
-                        })
-                        .collect::<Vec<State>>(),
-                );
-                machine_three.matches = machine_n
-                    .matches
-                    .iter()
-                    .map(|match_index| match_index + last_index)
-                    .collect::<Vec<Vertex>>();
+
+                // Shift machine_n δ (delta) transitions, push shifted machine_n transitions to machine_c states
+                for machine_n_state in &machine_n.states {
+                    let mut next_machine_c_state: State = vec![];
+                    for machine_n_state_m_edge_o in machine_n_state {
+                        next_machine_c_state.push(Edge(
+                            machine_n_state_m_edge_o.0 + machine_n_next_q0,
+                            machine_n_state_m_edge_o.1,
+                            machine_n_state_m_edge_o.2 + machine_n_next_q0,
+                        ))
+                    }
+                    machine_c.states.push(next_machine_c_state);
+                }
+
+                // Shift machine_n F (match states), set machine_c F as shifted machine_n F
+                let mut next_machine_c_matches: Vec<Vertex> = vec![];
+                for machine_n_match in &machine_n.matches {
+                    next_machine_c_matches.push(machine_n_match + machine_n_next_q0);
+                }
+                machine_c.matches = next_machine_c_matches;
             }
-            Ok(machine_three)
+            Ok(machine_c)
         }
     }
 
@@ -151,6 +137,45 @@ mod tests {
                     .join(", ")
             )
         }
+    }
+
+    #[test]
+    fn character_literal() {
+        let character_literal_automata: FA = FA::from_literal('f').unwrap();
+
+        assert_eq!(
+            2,
+            character_literal_automata.states.len(),
+            "Must only have two states, q0 (start state) and F (match state)"
+        );
+        assert_eq!(
+            1,
+            character_literal_automata.states[0].len(),
+            "q0 (start state) must have one transition"
+        );
+        assert_eq!(
+            1, character_literal_automata.states[0][0].2,
+            "q0 (start state) transition must go to match state"
+        );
+        assert_eq!(
+            'f',
+            character_literal_automata.states[0][0].1.unwrap(),
+            "q0 (start state) edge value must be input literal"
+        );
+        assert_eq!(
+            0,
+            character_literal_automata.states[1].len(),
+            "No transitions from F (match state)"
+        );
+        assert_eq!(
+            1, character_literal_automata.matches[0],
+            "Final state must be one of F (match state)"
+        );
+        assert_eq!(
+            1,
+            character_literal_automata.matches.len(),
+            "F (match state) is set of one"
+        );
     }
 
     #[test]
