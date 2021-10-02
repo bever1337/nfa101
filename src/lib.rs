@@ -135,10 +135,9 @@ mod tests {
                 "Finite Automata = (\n\
                 \x20  Q: {{ {} }},\n\
                 \x20  Σ: {{ 0..255 }},\n\
-                \x20  δ: (Q, Σ) -> [Q],\n\
+                \x20  δ: (Q, Σ) -> [Q],\n{}\
                 \x20  q0: {},\n\
-                \x20  F: {{ {} }}\n)\n\n\
-                δ table:\n{}\n\
+                \x20  F: {{ {} }}\n)
             ",
                 self.states
                     .iter()
@@ -146,34 +145,30 @@ mod tests {
                     .map(|(index, _state)| { format!("{}", index) })
                     .collect::<Vec<_>>()
                     .join(", "),
+                self.states
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _state)| {
+                        _state
+                            .iter()
+                            .map(|edge| {
+                                let c = match edge.1 {
+                                    Some(character) => character,
+                                    None => 'ε',
+                                };
+                                format!("\x20    ({}, {}) -> {{ {} }}", index.to_string(), c, edge.2)
+                            })
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n"),
                 0,
                 self.matches
                     .iter()
                     .map(|accept_state_index| format!("{}", accept_state_index))
                     .collect::<Vec<_>>()
-                    .join(", "),
-                self.states
-                    .iter()
-                    .enumerate()
-                    .map(|(index, _state)| {
-                        [
-                            index.to_string(),
-                            _state
-                                .iter()
-                                .map(|edge| {
-                                    let c = match edge.1 {
-                                        Some(character) => character,
-                                        None => 'ε',
-                                    };
-                                    format!("-- {} --> ( {} )", c, edge.2)
-                                })
-                                .collect::<Vec<_>>()
-                                .join(", "),
-                        ]
-                        .join(": ")
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                    .join(", ")
             )
         }
     }
