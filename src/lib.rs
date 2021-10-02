@@ -1,36 +1,36 @@
 #[cfg(test)]
 mod tests {
-    use regex_syntax::hir::{Hir, Visitor};
+    // use regex_syntax::hir::{Hir, Visitor};
     // use regex_syntax::hir::{visit, Hir, Visitor};
     // use regex_syntax::Parser;
     // use std::collections::HashMap;
     use std::fmt;
 
-    struct MyVisitor {}
-    impl Visitor for MyVisitor {
-        type Output = bool;
-        type Err = bool;
+    // struct MyVisitor {}
+    // impl Visitor for MyVisitor {
+    //     type Output = bool;
+    //     type Err = bool;
 
-        fn finish(self) -> Result<Self::Output, Self::Err> {
-            Ok(true)
-        }
+    //     fn finish(self) -> Result<Self::Output, Self::Err> {
+    //         Ok(true)
+    //     }
 
-        fn start(&mut self) {
-            println!("visitor start");
-        }
-        fn visit_pre(&mut self, _hir: &Hir) -> Result<(), Self::Err> {
-            println!("visit_pre {}, {:#?}", _hir, _hir.kind());
-            Ok(())
-        }
-        fn visit_post(&mut self, _hir: &Hir) -> Result<(), Self::Err> {
-            println!("visit_post {}, {:#?}", _hir, _hir.kind());
-            Ok(())
-        }
-        fn visit_alternation_in(&mut self) -> Result<(), Self::Err> {
-            println!("visit_alternation_in");
-            Ok(())
-        }
-    }
+    //     fn start(&mut self) {
+    //         println!("visitor start");
+    //     }
+    //     fn visit_pre(&mut self, _hir: &Hir) -> Result<(), Self::Err> {
+    //         println!("visit_pre {}, {:#?}", _hir, _hir.kind());
+    //         Ok(())
+    //     }
+    //     fn visit_post(&mut self, _hir: &Hir) -> Result<(), Self::Err> {
+    //         println!("visit_post {}, {:#?}", _hir, _hir.kind());
+    //         Ok(())
+    //     }
+    //     fn visit_alternation_in(&mut self) -> Result<(), Self::Err> {
+    //         println!("visit_alternation_in");
+    //         Ok(())
+    //     }
+    // }
 
     pub type Vertex = usize;
 
