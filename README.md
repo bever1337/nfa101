@@ -1,6 +1,6 @@
 # nfa101
 
-I naively wanted to pattern match an arbitrary stream of data using regular expressions and I discovered implementations are lacking or non-existant. Now I'm working from the ground up and prototyping a language engine that matches on arbitrary streams of bytes. The first goal is a formal NFA implementation. It is up to the developer to enforce specific compilation algorithms like "Thompson's Construction."
+I naively wanted to pattern match an arbitrary stream of data using regular expressions and I discovered implementations are lacking or non-existent. Now I'm working from the ground up and prototyping a language engine that matches on arbitrary streams of bytes. The first goal is a formal NFA implementation. It is up to the developer to enforce specific compilation algorithms like "Thompson's Construction."
 
 ### 1. Defines an NFA implementation by the 5-tuple (Q, Σ, δ, q0, F)
 
