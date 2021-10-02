@@ -155,6 +155,7 @@ mod tests {
 
     #[test]
     fn supports_literals_and_concatenation() {
+        println!("{:#?}", FA::from_literal('A'));
         println!(
             "Debug: Concatenate a, p, p, l, e:{:#?}",
             FA::from_composed_concatenation_closure(vec![

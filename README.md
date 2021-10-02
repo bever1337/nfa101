@@ -64,9 +64,18 @@ Finite Automata = (
 1. From literal ✓
 
 ```rust
-// Edges are be Option<char>, created from literals as:
 FA::from_literal('A')
-// returns: Edge(0, Some('A'), 1)
+/*
+Ok(
+    FA {
+        matches: [1],
+        states: [
+            [Edge(0, Some('A'), 1)],
+            [],
+        ],
+    },
+)
+*/
 ```
 
 ```rust
