@@ -6,32 +6,6 @@ mod tests {
     // use std::collections::HashMap;
     use std::fmt;
 
-    // struct MyVisitor {}
-    // impl Visitor for MyVisitor {
-    //     type Output = bool;
-    //     type Err = bool;
-
-    //     fn finish(self) -> Result<Self::Output, Self::Err> {
-    //         Ok(true)
-    //     }
-
-    //     fn start(&mut self) {
-    //         println!("visitor start");
-    //     }
-    //     fn visit_pre(&mut self, _hir: &Hir) -> Result<(), Self::Err> {
-    //         println!("visit_pre {}, {:#?}", _hir, _hir.kind());
-    //         Ok(())
-    //     }
-    //     fn visit_post(&mut self, _hir: &Hir) -> Result<(), Self::Err> {
-    //         println!("visit_post {}, {:#?}", _hir, _hir.kind());
-    //         Ok(())
-    //     }
-    //     fn visit_alternation_in(&mut self) -> Result<(), Self::Err> {
-    //         println!("visit_alternation_in");
-    //         Ok(())
-    //     }
-    // }
-
     pub type Vertex = usize;
 
     pub type Transition = Option<char>;
@@ -48,15 +22,15 @@ mod tests {
     //     }
     // }
 
-    impl fmt::Display for Edge {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let c = match self.1 {
-                Some(character) => character,
-                None => 'ε',
-            };
-            write!(f, "( {} ) -- {} --> ( {} )", self.0, c, self.2)
-        }
-    }
+    // impl fmt::Display for Edge {
+    //     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    //         let c = match self.1 {
+    //             Some(character) => character,
+    //             None => 'ε',
+    //         };
+    //         write!(f, "( {} ) -- {} --> ( {} )", self.0, c, self.2)
+    //     }
+    // }
 
     pub type State = Vec<Edge>;
 
@@ -135,7 +109,7 @@ mod tests {
                 "Finite Automata = (\n\
                 \x20  Q: {{ {} }},\n\
                 \x20  Σ: {{ 0..255 }},\n\
-                \x20  δ: (Q, Σ) -> [Q],\n{}\
+                \x20  δ: (Q, Σ) -> [Q],{}\n\
                 \x20  q0: {},\n\
                 \x20  F: {{ {} }}\n)
             ",
@@ -149,20 +123,26 @@ mod tests {
                     .iter()
                     .enumerate()
                     .map(|(index, _state)| {
-                        _state
-                            .iter()
-                            .map(|edge| {
-                                let c = match edge.1 {
-                                    Some(character) => character,
-                                    None => 'ε',
-                                };
-                                format!("\x20    ({}, {}) -> {{ {} }}", index.to_string(), c, edge.2)
-                            })
-                            .collect::<Vec<_>>()
-                            .join(", ")
+                        [
+                            String::from("\n\x20    "),
+                            index.to_string(),
+                            String::from(": "),
+                            _state
+                                .iter()
+                                .map(|edge| {
+                                    let c = match edge.1 {
+                                        Some(character) => character,
+                                        None => 'ε',
+                                    };
+                                    format!("{} -> {{ {} }}", c, edge.2)
+                                })
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                        ]
+                        .join("")
                     })
                     .collect::<Vec<_>>()
-                    .join("\n"),
+                    .join(""),
                 0,
                 self.matches
                     .iter()
@@ -175,9 +155,8 @@ mod tests {
 
     #[test]
     fn supports_literals_and_concatenation() {
-        // println!("Debug: {:#?}", FA::from_literal('A').unwrap());
         println!(
-            "Concatenate a, p, p, l, e:\n\n{}",
+            "Debug: Concatenate a, p, p, l, e:{:#?}",
             FA::from_composed_concatenation_closure(vec![
                 FA::from_literal('A').unwrap(),
                 FA::from_literal('P').unwrap(),
@@ -187,13 +166,17 @@ mod tests {
             ])
             .unwrap()
         );
+        println!(
+            "Concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{}",
+            FA::from_composed_concatenation_closure(vec![
+                FA::from_literal('A').unwrap(),
+                FA::from_literal('P').unwrap(),
+                FA::from_literal('P').unwrap(),
+                FA::from_literal('L').unwrap(),
+                FA::from_literal('E').unwrap(),
+            ])
+            .unwrap()
+        );
+        // println!("{}", FA::from_literal('A').unwrap());
     }
-
-    // #[test]
-    // fn visit_stuff() {
-    //     let pattern: &str = &"banana";
-    //     let hir = Parser::new().parse(pattern).unwrap();
-    //     let visity = MyVisitor {};
-    //     visit(&hir, visity).unwrap();
-    // }
 }
