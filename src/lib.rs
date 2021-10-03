@@ -16,29 +16,25 @@ pub type Delta = Vec<State>;
 
 pub type Matches = Vec<Vertex>;
 
+/**
+ * A finite automata is defined by the 5-tuple (
+ *   Q:  Set of all states in automata,
+ *   Σ:  Finite alphabet,
+ *   δ:  A function accepting (1) n in Q and (2) symbol in Σ, returning a set of Q, { Q }
+ *   q0: Initial n in Q
+ *   F:  Set of all match states in Q
+ * )
+ */
 #[derive(Clone, Debug)]
 pub struct FA {
-    // Q: Vertices of delta
-    // Σ: Any byte
+    // Q: Unordered vertices of δ, i.e. Q = { 0 .. delta.len() }
+    // Σ: ???
     delta: Delta, // δ
     q0: Vertex,   //q0
     f: Matches,   // F
 }
 
 impl FA {
-    /**
-     * FA constructions
-     */
-    // ( 0 ) -- ε --> (( 1 ))
-    fn from_epsilon() -> Result<FA, &'static str> {
-        FA::from_unit(None)
-    }
-
-    // ( 0 ) -- 'a' --> (( 1 ))
-    fn from_literal(c: char) -> Result<FA, &'static str> {
-        FA::from_unit(Some(c))
-    }
-
     /**
      * the smallest automata = (
      *   Q: { 0, 1 },
@@ -56,6 +52,16 @@ impl FA {
             delta: vec![vec![Edge(0, transition, 1)], vec![]],
             q0: 0,
         })
+    }
+
+    // ( 0 ) -- ε --> (( 1 ))
+    fn from_epsilon() -> Result<FA, &'static str> {
+        FA::from_unit(None)
+    }
+
+    // ( 0 ) -- 'a' --> (( 1 ))
+    fn from_literal(c: char) -> Result<FA, &'static str> {
+        FA::from_unit(Some(c))
     }
 
     /**
@@ -106,35 +112,6 @@ impl FA {
         Ok(machine_c)
     }
 
-    // concatenation is a binary operation composed left-to-right
-    // machine_c = machine_a ⋅ machine_b
-    // machine_o = machine_a ⋅ machine_b ⋅ ... ⋅ machine_n
-    fn from_composed_concatenation(machines: Vec<FA>) -> Result<FA, &'static str> {
-        match machines.len() {
-            0 | 1 => return Err("Concatenation requires two or more machines"),
-            _ => {}
-        };
-
-        let mut machines_iterator = machines.iter();
-        // "push" machine_a to machine_c
-        let mut machine_c: FA = machines_iterator.next().unwrap().clone();
-
-        // while machine_b, do machine_c = machine_a ⋅ machine_b
-        loop {
-            match machines_iterator.next() {
-                Some(machine_b) => {
-                    match FA::from_concatenation(machine_c, machine_b.clone()) {
-                        Ok(next_machine_c) => {
-                            machine_c = next_machine_c;
-                        }
-                        Err(error) => return Err(error),
-                    };
-                }
-                None => return Ok(machine_c),
-            };
-        }
-    }
-
     fn from_difference(machine: FA) -> Result<FA, &'static str> {
         Err("Not implemented")
     }
@@ -176,63 +153,25 @@ impl FA {
         // shifted machine_b.q0 = | machine_a.Q | + 1
         let machine_b_shift = machine_c.delta.len();
         machine_c.delta[machine_c.q0].push(Edge(machine_c.q0, None, machine_b_shift));
-        machine_b
-            .delta
-            .iter()
-            .enumerate()
-            .for_each(|(index_i, machine_b_previous_state_i)| {
-                machine_c.delta.push(vec![]);
-                machine_b_previous_state_i
-                    .iter()
-                    .for_each(|machine_b_previous_state_i_edge_j| {
-                        machine_c.delta[index_i + machine_b_shift].push(Edge(
-                            machine_b_previous_state_i_edge_j.0 + machine_b_shift,
-                            machine_b_previous_state_i_edge_j.1,
-                            machine_b_previous_state_i_edge_j.2 + machine_b_shift,
-                        ));
-                    });
-            });
+        for (index_i, machine_b_previous_state_i) in machine_b.delta.iter().enumerate() {
+            machine_c.delta.push(vec![]);
+            for machine_b_previous_state_i_edge_j in machine_b_previous_state_i {
+                machine_c.delta[index_i + machine_b_shift].push(Edge(
+                    machine_b_previous_state_i_edge_j.0 + machine_b_shift,
+                    machine_b_previous_state_i_edge_j.1,
+                    machine_b_previous_state_i_edge_j.2 + machine_b_shift,
+                ));
+            }
+        }
 
         // add shifted machine_b.F (match states) to machine_c.F (match states)
-        machine_b.f.iter().for_each(|machine_b_previous_match_i| {
+        for machine_b_previous_match_i in machine_b.f {
             machine_c
                 .f
                 .push(machine_b_previous_match_i + machine_b_shift);
-        });
-
-        Ok(machine_c)
-    }
-
-    /**
-     * Utility constructions
-     */
-    // Shifts q0, F, and δ to the right by inserting states with no transitions from the left
-    // Opted to insert states without transitions instead of just shifting the values.
-    // By actually queuing empty states, the machine isn't broken by the shift to the right
-    fn from_create_empty_states_left(machine_a: FA, shift: Vertex) -> Result<FA, &'static str> {
-        let mut machine_b_states: Delta = vec![vec![]; shift];
-        for previous_state_n in machine_a.delta {
-            let mut next_machine_state: State = vec![];
-            for machine_state_n_edge_o in previous_state_n {
-                next_machine_state.push(Edge(
-                    machine_state_n_edge_o.0 + shift,
-                    machine_state_n_edge_o.1,
-                    machine_state_n_edge_o.2 + shift,
-                ));
-            }
-            machine_b_states.push(next_machine_state);
         }
 
-        let machine_b = FA {
-            delta: machine_b_states,
-            q0: machine_a.q0 + shift,
-            f: machine_a
-                .f
-                .iter()
-                .map(|previous_match| previous_match + shift)
-                .collect::<Vec<Vertex>>(),
-        };
-        Ok(machine_b)
+        Ok(machine_c)
     }
 }
 
