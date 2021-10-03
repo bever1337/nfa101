@@ -16,7 +16,7 @@ Input:
 println!("Literal 'A':\n{}", FA::from_literal('A').unwrap());
 println!(
     "Concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{}",
-    FA::from_composed_concatenation_closure(vec![
+    FA::from_concatenation(vec![
         FA::from_literal('A').unwrap(),
         FA::from_literal('P').unwrap(),
         FA::from_literal('P').unwrap(),
@@ -99,7 +99,7 @@ Edge(0, None, 1)
 // Concatenation is a binary operation composed left-to-right
 println!(
     "Debug: concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{:#?}",
-    FA::from_composed_concatenation_closure(vec![
+    FA::from_concatenation(vec![
         FA::from_literal('A').unwrap(),
         FA::from_literal('P').unwrap(),
         FA::from_literal('P').unwrap(),
