@@ -1,4 +1,6 @@
+// symbols for ease of copy+paste:
 // ε
+// FA = (Q, Σ, δ, q0, F)
 use std::fmt;
 
 pub type Vertex = usize;
@@ -9,25 +11,19 @@ pub type Transition = Option<char>;
 pub struct Edge(Vertex, Transition, Vertex);
 
 pub type State = Vec<Edge>;
+
 pub type Delta = Vec<State>;
+
 pub type Matches = Vec<Vertex>;
 
 #[derive(Clone, Debug)]
 pub struct FA {
-    // Q: Vertices of states
+    // Q: Vertices of delta
     // Σ: Any byte
-    states: Delta,    // δ
-    q0: Vertex,       //q0
-    matches: Matches, // F
+    delta: Delta, // δ
+    q0: Vertex,   //q0
+    f: Matches,   // F
 }
-
-// pub struct FA {
-//     // Q: Vertices of states
-//     // Σ: Any byte
-//     d: Delta, // δ
-//     q0: Vertex, //q0
-//     f: Matches, // F
-// }
 
 impl FA {
     /**
@@ -56,8 +52,8 @@ impl FA {
      */
     fn from_unit(transition: Option<char>) -> Result<FA, &'static str> {
         Ok(FA {
-            matches: vec![1],
-            states: vec![vec![Edge(0, transition, 1)], vec![]],
+            f: vec![1],
+            delta: vec![vec![Edge(0, transition, 1)], vec![]],
             q0: 0,
         })
     }
@@ -70,7 +66,7 @@ impl FA {
     }
 
     fn from_concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
-        match (machine_a.matches.len(), machine_b.matches.len()) {
+        match (machine_a.f.len(), machine_b.f.len()) {
             (0, _) | (_, 0) => return Err("No match states, cannot concatenate machine"),
             _ => {}
         };
@@ -78,18 +74,18 @@ impl FA {
         let mut machine_c: FA = machine_a;
 
         // machine_b.q0 = |machine_a.Q| (machine_b's initial state ID will become length of states of machine_a)
-        let machine_b_next_q0 = machine_c.states.len();
+        let machine_b_next_q0 = machine_c.delta.len();
         // point previous machine_a.F (set of match states) to machine_b.q0 (initial state)
-        for machine_c_previous_match in machine_c.matches {
-            machine_c.states[machine_c_previous_match].push(Edge(
-                machine_c_previous_match,
+        for machine_c_previous_match_i in machine_c.f {
+            machine_c.delta[machine_c_previous_match_i].push(Edge(
+                machine_c_previous_match_i,
                 None,
                 machine_b_next_q0,
             ));
         }
 
         // Shift machine_b δ (delta) transitions, push shifted machine_b transitions to machine_c states
-        for machine_b_state_m in &machine_b.states {
+        for machine_b_state_m in &machine_b.delta {
             let mut next_machine_c_state: State = vec![];
             for machine_b_state_m_edge_n in machine_b_state_m {
                 next_machine_c_state.push(Edge(
@@ -98,15 +94,15 @@ impl FA {
                     machine_b_state_m_edge_n.2 + machine_b_next_q0,
                 ))
             }
-            machine_c.states.push(next_machine_c_state);
+            machine_c.delta.push(next_machine_c_state);
         }
 
         // Shift machine_n F (match states), set machine_c F as shifted machine_n F
         let mut next_machine_c_matches: Vec<Vertex> = vec![];
-        for machine_b_match_m in &machine_b.matches {
+        for machine_b_match_m in &machine_b.f {
             next_machine_c_matches.push(machine_b_match_m + machine_b_next_q0);
         }
-        machine_c.matches = next_machine_c_matches;
+        machine_c.f = next_machine_c_matches;
         Ok(machine_c)
     }
 
@@ -163,12 +159,12 @@ impl FA {
     fn from_union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
         // machine_c.q0 = | machine_a.Q |
         // q0 (initial state) of machine_c is equal to the length of Q (states) of machine_a
-        let machine_c_q0 = machine_a.states.len();
+        let machine_c_q0 = machine_a.delta.len();
         let mut machine_c: FA = FA {
-            matches: machine_a.matches, // begin with machine_a.F
+            f: machine_a.f, // begin with machine_a.F
             q0: machine_c_q0,
-            states: vec![
-                machine_a.states,
+            delta: vec![
+                machine_a.delta,
                 vec![vec![Edge(machine_c_q0, None, machine_a.q0)]],
             ]
             .concat(),
@@ -178,18 +174,18 @@ impl FA {
         // q0 (initial state) of shifted machine_b is equal to the length of Q (states) of machine_c
         // Given how machine_c was initialized, we could assume that the shifted machine_b.q0 is next state after machine_c.q0, i.e.
         // shifted machine_b.q0 = | machine_a.Q | + 1
-        let machine_b_shift = machine_c.states.len();
-        machine_c.states[machine_c.q0].push(Edge(machine_c.q0, None, machine_b_shift));
+        let machine_b_shift = machine_c.delta.len();
+        machine_c.delta[machine_c.q0].push(Edge(machine_c.q0, None, machine_b_shift));
         machine_b
-            .states
+            .delta
             .iter()
             .enumerate()
             .for_each(|(index_i, machine_b_previous_state_i)| {
-                machine_c.states.push(vec![]);
+                machine_c.delta.push(vec![]);
                 machine_b_previous_state_i
                     .iter()
                     .for_each(|machine_b_previous_state_i_edge_j| {
-                        machine_c.states[index_i + machine_b_shift].push(Edge(
+                        machine_c.delta[index_i + machine_b_shift].push(Edge(
                             machine_b_previous_state_i_edge_j.0 + machine_b_shift,
                             machine_b_previous_state_i_edge_j.1,
                             machine_b_previous_state_i_edge_j.2 + machine_b_shift,
@@ -198,14 +194,11 @@ impl FA {
             });
 
         // add shifted machine_b.F (match states) to machine_c.F (match states)
-        machine_b
-            .matches
-            .iter()
-            .for_each(|machine_b_previous_match_i| {
-                machine_c
-                    .matches
-                    .push(machine_b_previous_match_i + machine_b_shift);
-            });
+        machine_b.f.iter().for_each(|machine_b_previous_match_i| {
+            machine_c
+                .f
+                .push(machine_b_previous_match_i + machine_b_shift);
+        });
 
         Ok(machine_c)
     }
@@ -218,7 +211,7 @@ impl FA {
     // By actually queuing empty states, the machine isn't broken by the shift to the right
     fn from_create_empty_states_left(machine_a: FA, shift: Vertex) -> Result<FA, &'static str> {
         let mut machine_b_states: Delta = vec![vec![]; shift];
-        for previous_state_n in machine_a.states {
+        for previous_state_n in machine_a.delta {
             let mut next_machine_state: State = vec![];
             for machine_state_n_edge_o in previous_state_n {
                 next_machine_state.push(Edge(
@@ -231,10 +224,10 @@ impl FA {
         }
 
         let machine_b = FA {
-            states: machine_b_states,
+            delta: machine_b_states,
             q0: machine_a.q0 + shift,
-            matches: machine_a
-                .matches
+            f: machine_a
+                .f
                 .iter()
                 .map(|previous_match| previous_match + shift)
                 .collect::<Vec<Vertex>>(),
@@ -254,13 +247,13 @@ impl fmt::Display for FA {
             \x20  q0: {},\n\
             \x20  F: {{ {} }}\n)
         ",
-            self.states
+            self.delta
                 .iter()
                 .enumerate()
                 .map(|(index, _state)| { format!("{}", index) })
                 .collect::<Vec<_>>()
                 .join(", "),
-            self.states
+            self.delta
                 .iter()
                 .enumerate()
                 .map(|(index, _state)| {
@@ -285,7 +278,7 @@ impl fmt::Display for FA {
                 .collect::<Vec<_>>()
                 .join(""),
             self.q0,
-            self.matches
+            self.f
                 .iter()
                 .map(|accept_state_index| format!("{}", accept_state_index))
                 .collect::<Vec<_>>()
@@ -307,28 +300,28 @@ mod tests {
             the_smallest_literal_automaton,
         ];
         for automaton in &automata {
-            assert_eq!(2, automaton.states.len(), "Must only have two states");
+            assert_eq!(2, automaton.delta.len(), "Must only have two states");
             assert_eq!(
                 1,
-                automaton.matches.len(),
+                automaton.f.len(),
                 "Must only have one state in set of F (match states)"
             );
             assert_ne!(
-                automaton.q0, automaton.matches[0],
+                automaton.q0, automaton.f[0],
                 "q0 (start state) must not be in set of F (match states)."
             );
             assert_eq!(
                 1,
-                automaton.states[automaton.q0].len(),
+                automaton.delta[automaton.q0].len(),
                 "Machine requires one transition from q0"
             );
             assert_eq!(
-                automaton.states[automaton.q0][0].2, automaton.matches[0],
+                automaton.delta[automaton.q0][0].2, automaton.f[0],
                 "Machine must transition from q0 to one of F"
             );
             assert_eq!(
                 0,
-                automaton.states[automaton.matches[0]].len(),
+                automaton.delta[automaton.f[0]].len(),
                 "Machine must not transition from match states"
             );
         }
@@ -338,7 +331,7 @@ mod tests {
     fn test_from_epsilon() {
         let epsilon_automata: FA = FA::from_epsilon().unwrap();
         assert_eq!(
-            None, epsilon_automata.states[0][0].1,
+            None, epsilon_automata.delta[0][0].1,
             "An epsilon transition must be represented by none"
         );
     }
@@ -348,7 +341,7 @@ mod tests {
         let character_literal_automata: FA = FA::from_literal('a').unwrap();
         assert_eq!(
             'a',
-            character_literal_automata.states[0][0].1.unwrap(),
+            character_literal_automata.delta[0][0].1.unwrap(),
             "Input literal must be preserved"
         );
     }
