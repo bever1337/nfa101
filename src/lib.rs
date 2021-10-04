@@ -1,6 +1,7 @@
 // symbols for ease of copy+paste:
 // ε
 // FA = (Q, Σ, δ, q0, F)
+use std::collections::HashMap;
 use std::fmt;
 
 pub type Vertex = usize;
@@ -10,7 +11,7 @@ pub type Transition = Option<char>;
 #[derive(Clone, Debug)]
 pub struct Edge(Vertex, Transition, Vertex);
 
-pub type State = Vec<Edge>;
+pub type State = HashMap<Transition, Vec<Vertex>>;
 
 pub type Delta = Vec<State>;
 
@@ -25,7 +26,7 @@ pub type Matches = Vec<Vertex>;
  *   F:  Set of all match states in Q
  * )
  */
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FA {
     // Q: Unordered vertices of δ, i.e. Q = { 0 .. delta.len() }
     // Σ: ???
@@ -47,10 +48,16 @@ impl FA {
      * )
      */
     fn from_unit(transition: Option<char>) -> Result<FA, &'static str> {
+        let mut delta_q0: State = HashMap::new();
+        let delta_q1: State = HashMap::new();
+        assert!(
+            delta_q0.insert(transition, vec![1]).is_none(),
+            "Unexpected error, new HashMap somehow had old value"
+        );
         Ok(FA {
-            f: vec![1],
-            delta: vec![vec![Edge(0, transition, 1)], vec![]],
+            delta: vec![delta_q0, delta_q1],
             q0: 0,
+            f: vec![1],
         })
     }
 
@@ -64,9 +71,6 @@ impl FA {
         FA::from_unit(Some(c))
     }
 
-    /**
-     * Set constructions
-     */
     fn from_complement(machine: FA) -> Result<FA, &'static str> {
         Err("Not implemented")
     }
@@ -82,47 +86,55 @@ impl FA {
         // machine_b.q0 = |machine_a.Q| (machine_b's initial state ID will become length of states of machine_a)
         let machine_b_next_q0 = machine_c.delta.len();
         // point previous machine_a.F (set of match states) to machine_b.q0 (initial state)
-        for machine_c_previous_match_i in machine_c.f {
-            machine_c.delta[machine_c_previous_match_i].push(Edge(
-                machine_c_previous_match_i,
-                None,
-                machine_b_next_q0,
-            ));
+        for &match_i in &machine_c.f {
+            if let Some(epsilon_transitions) = machine_c.delta[match_i].get_mut(&None) {
+                epsilon_transitions.push(machine_b_next_q0);
+            } else {
+                if let Some(_) = machine_c.delta[match_i].insert(None, vec![machine_b_next_q0]) {
+                    // sanity check, machine_c.delta[match_n] matched None, so insert can't return Some
+                    return Err("Unexpected error, new HashMap somehow had old value");
+                }
+            }
         }
 
         // Shift machine_b δ (delta) transitions, push shifted machine_b transitions to machine_c states
-        for machine_b_state_m in &machine_b.delta {
-            let mut next_machine_c_state: State = vec![];
-            for machine_b_state_m_edge_n in machine_b_state_m {
-                next_machine_c_state.push(Edge(
-                    machine_b_state_m_edge_n.0 + machine_b_next_q0,
-                    machine_b_state_m_edge_n.1,
-                    machine_b_state_m_edge_n.2 + machine_b_next_q0,
-                ))
+        for delta_i in machine_b.delta {
+            let mut machine_c_state_n: State = HashMap::new();
+            for (&transition_symbol, to_states) in delta_i.iter() {
+                if let Some(_) = machine_c_state_n.insert(
+                    transition_symbol,
+                    to_states
+                        .iter()
+                        .map(|state_id| state_id + machine_b_next_q0)
+                        .collect::<Vec<Vertex>>(),
+                ) {
+                    // sanity check, brand-new hash map
+                    return Err("Unexpected error, new HashMap somehow had old value");
+                };
             }
-            machine_c.delta.push(next_machine_c_state);
+            machine_c.delta.push(machine_c_state_n);
         }
 
         // Shift machine_n F (match states), set machine_c F as shifted machine_n F
         let mut next_machine_c_matches: Vec<Vertex> = vec![];
-        for machine_b_match_m in &machine_b.f {
-            next_machine_c_matches.push(machine_b_match_m + machine_b_next_q0);
+        for match_i in &machine_b.f {
+            next_machine_c_matches.push(match_i + machine_b_next_q0);
         }
         machine_c.f = next_machine_c_matches;
         Ok(machine_c)
     }
 
-    fn from_difference(machine: FA) -> Result<FA, &'static str> {
-        Err("Not implemented")
-    }
+    // fn from_difference(machine: FA) -> Result<FA, &'static str> {
+    //     Err("Not implemented")
+    // }
 
-    fn from_intersection(machine: FA) -> Result<FA, &'static str> {
-        Err("Not implemented")
-    }
+    // fn from_intersection(machine: FA) -> Result<FA, &'static str> {
+    //     Err("Not implemented")
+    // }
 
-    fn from_star(machine: FA) -> Result<FA, &'static str> {
-        Err("Not implemented")
-    }
+    // fn from_star(machine: FA) -> Result<FA, &'static str> {
+    //     Err("Not implemented")
+    // }
 
     // machine_c = machina_a ∪ machine_b
     // given machine_a:
@@ -134,34 +146,66 @@ impl FA {
     //   ( 2 )
     //       \-- ε --> ( 3 ) -- B --> (( 4 ))
     fn from_union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
-        // machine_c.q0 = | machine_a.Q |
-        // q0 (initial state) of machine_c is equal to the length of Q (states) of machine_a
-        let machine_c_q0 = machine_a.delta.len();
+        // construct first 'leg' of machine_c
+        //       /-- ε --> ( 0 ) -- A --> (( 1 ))
+        //   ( 2 )
+        // add first epsilon transition from q0 of machine_c to the former q0 of machine_a
+        let mut machine_c_delta_q0: State = HashMap::new();
+        assert!(
+            machine_c_delta_q0
+                .insert(None, vec![machine_a.q0])
+                .is_none(),
+            "Unexpected error, previous value cannot exist in new hash map"
+        );
         let mut machine_c: FA = FA {
-            f: machine_a.f, // begin with machine_a.F
-            q0: machine_c_q0,
-            delta: vec![
-                machine_a.delta,
-                vec![vec![Edge(machine_c_q0, None, machine_a.q0)]],
-            ]
-            .concat(),
+            f: machine_a.f,            // begin with machine_a.F
+            q0: machine_a.delta.len(), // q0 (initial state) of machine_c is equal to the length of Q (states) of machine_a, i.e. machine_c.q0 = | machine_a.Q |
+            delta: vec![machine_a.delta, vec![machine_c_delta_q0]].concat(),
         };
 
-        // shifted machine_b.q0 = | machine_c.Q |
-        // q0 (initial state) of shifted machine_b is equal to the length of Q (states) of machine_c
-        // Given how machine_c was initialized, we could assume that the shifted machine_b.q0 is next state after machine_c.q0, i.e.
-        // shifted machine_b.q0 = | machine_a.Q | + 1
+        // q0 (initial state) of shifted machine_b is equal to the length of Q (states) of machine_c, i.e. shifted machine_b.q0 = | machine_c.Q |
+        // Given how machine_c was initialized, we could assume that the shifted machine_b.q0 is next state after machine_c.q0, i.e. shifted machine_b.q0 = | machine_a.Q | + 1
         let machine_b_shift = machine_c.delta.len();
-        machine_c.delta[machine_c.q0].push(Edge(machine_c.q0, None, machine_b_shift));
-        for (index_i, machine_b_previous_state_i) in machine_b.delta.iter().enumerate() {
-            machine_c.delta.push(vec![]);
-            for machine_b_previous_state_i_edge_j in machine_b_previous_state_i {
-                machine_c.delta[index_i + machine_b_shift].push(Edge(
-                    machine_b_previous_state_i_edge_j.0 + machine_b_shift,
-                    machine_b_previous_state_i_edge_j.1,
-                    machine_b_previous_state_i_edge_j.2 + machine_b_shift,
-                ));
+        // add second epsilon transition from q0 of machine_c to the shifted q0 of machine_b
+        machine_c.delta[machine_c.q0]
+            .get_mut(&None)
+            .unwrap() // unwrapping because we already asserted this key/value
+            .push(machine_b_shift);
+
+        // construct second 'leg' of machine_c
+        //   ( 2 )
+        //       \-- ε --> ( 3 ) -- B --> (( 4 ))
+        // recall delta is a function where (Q, Σ) -> [Q]
+        // Q is an index in delta returning a HashMap. Σ (transition) is a key of HashMap returning a vector of state ids [Q]
+        // for { A: [1] } in [{ A: [1] }, { ε: [2] }, { B: [3] }, { }]
+        for machine_b_delta_q in machine_b.delta.iter() {
+            let mut machine_c_delta_q: State = HashMap::new();
+            // for (A, [1]) in { A: [1] }
+            for (&machine_b_delta_q_transition, machine_b_delta_q_transition_q_set) in
+                machine_b_delta_q
+            {
+                // shift machine_b [Q] for current delta function
+                let machine_c_delta_q_transition_q_set = machine_b_delta_q_transition_q_set
+                    .iter()
+                    .map(|machine_b_delta_q_transition_q| {
+                        machine_b_delta_q_transition_q + machine_b_shift
+                    })
+                    .collect::<Vec<Vertex>>();
+
+                // insert shifted [Q] into transition map
+                assert!(
+                    machine_c_delta_q
+                        .insert(
+                            machine_b_delta_q_transition,
+                            machine_c_delta_q_transition_q_set,
+                        )
+                        .is_none(),
+                    "Unexpected error, previous value cannot exist in new hash map"
+                );
             }
+
+            // add shifted delta function from machine_b onto machine_c
+            machine_c.delta.push(machine_c_delta_q);
         }
 
         // add shifted machine_b.F (match states) to machine_c.F (match states)
@@ -184,8 +228,7 @@ impl fmt::Display for FA {
             \x20  Σ: {{ 0..255 }},\n\
             \x20  δ: (Q, Σ) -> [Q],{}\n\
             \x20  q0: {},\n\
-            \x20  F: {{ {} }}\n)
-        ",
+            \x20  F: {{ {} }}\n)",
             self.delta
                 .iter()
                 .enumerate()
@@ -195,19 +238,27 @@ impl fmt::Display for FA {
             self.delta
                 .iter()
                 .enumerate()
-                .map(|(index, _state)| {
+                .map(|(delta_q, delta_transitions)| {
                     [
                         String::from("\n\x20    "),
-                        index.to_string(),
-                        String::from(": "),
-                        _state
+                        delta_q.to_string(),
+                        String::from(": Q"),
+                        delta_transitions
                             .iter()
-                            .map(|edge| {
-                                let c = match edge.1 {
+                            .map(|(&transition, q_set)| {
+                                let c = match transition {
                                     Some(character) => character,
                                     None => 'ε',
                                 };
-                                format!("{} -> {{ {} }}", c, edge.2)
+                                format!(
+                                    ", {}: Σ -> {{ {} }}",
+                                    c,
+                                    q_set
+                                        .iter()
+                                        .map(|q| q.to_string())
+                                        .collect::<Vec<_>>()
+                                        .join(", ")
+                                )
                             })
                             .collect::<Vec<_>>()
                             .join(", "),
@@ -228,17 +279,16 @@ impl fmt::Display for FA {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Edge, FA};
+    use crate::FA;
 
     #[test]
     fn test_from_unit() {
         let the_smallest_epsilon_automaton: FA = FA::from_unit(None).unwrap();
         let the_smallest_literal_automaton: FA = FA::from_unit(Some('a')).unwrap();
-        let automata = [
+        for automaton in &[
             the_smallest_epsilon_automaton,
             the_smallest_literal_automaton,
-        ];
-        for automaton in &automata {
+        ] {
             assert_eq!(2, automaton.delta.len(), "Must only have two states");
             assert_eq!(
                 1,
@@ -255,7 +305,8 @@ mod tests {
                 "Machine requires one transition from q0"
             );
             assert_eq!(
-                automaton.delta[automaton.q0][0].2, automaton.f[0],
+                automaton.delta[automaton.q0].values().next().unwrap()[0],
+                automaton.f[0],
                 "Machine must transition from q0 to one of F"
             );
             assert_eq!(
@@ -269,8 +320,8 @@ mod tests {
     #[test]
     fn test_from_epsilon() {
         let epsilon_automata: FA = FA::from_epsilon().unwrap();
-        assert_eq!(
-            None, epsilon_automata.delta[0][0].1,
+        assert!(
+            epsilon_automata.delta[epsilon_automata.q0].contains_key(&None),
             "An epsilon transition must be represented by none"
         );
     }
@@ -278,81 +329,101 @@ mod tests {
     #[test]
     fn test_from_literal() {
         let character_literal_automata: FA = FA::from_literal('a').unwrap();
-        assert_eq!(
-            'a',
-            character_literal_automata.delta[0][0].1.unwrap(),
+        assert!(
+            character_literal_automata.delta[character_literal_automata.q0]
+                .contains_key(&Some('a')),
             "Input literal must be preserved"
         );
     }
 
     #[test]
     fn test_from_concatenation() {
-        // let machine_foo = FA::from_concatenation(vec![
-        //     FA::from_literal('f').unwrap(),
-        //     FA::from_literal('o').unwrap(),
-        //     FA::from_literal('o').unwrap(),
-        // ])
-        // .unwrap();
-        // let _foo = FA {
-        //     q0: 0,
-        //     states: vec![
-        //         vec![Edge(0, Some('f'), 1)],
-        //         vec![Edge(1, None, 2)],
-        //         vec![Edge(2, Some('o'), 3)],
-        //         vec![Edge(3, None, 4)],
-        //         vec![Edge(4, Some('o'), 5)],
-        //         vec![],
-        //     ],
-        //     matches: vec![5],
-        // };
+        let machine_a = FA::from_literal('a').unwrap();
+        let machine_b = FA::from_literal('b').unwrap();
+        let machine_ab = FA::from_concatenation(
+            FA::from_literal('a').unwrap(),
+            FA::from_literal('b').unwrap(),
+        )
+        .unwrap();
+        let machine_ab_c = FA::from_concatenation(
+            FA::from_concatenation(
+                FA::from_literal('a').unwrap(),
+                FA::from_literal('b').unwrap(),
+            )
+            .unwrap(),
+            FA::from_literal('c').unwrap(),
+        )
+        .unwrap();
+        let machine_a_bc = FA::from_concatenation(
+            FA::from_literal('a').unwrap(),
+            FA::from_concatenation(
+                FA::from_literal('b').unwrap(),
+                FA::from_literal('c').unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            machine_a.delta.len() + machine_b.delta.len(),
+            machine_ab.delta.len(),
+            "| machine_c Q | = | machine_a Q | + | machine_b Q |"
+        );
+        assert_eq!(
+            machine_b.f.len(),
+            machine_ab.f.len(),
+            "| machine_c F | = | machine_b F |"
+        );
+        assert_eq!(
+            machine_a.q0, machine_ab.q0,
+            "q0 must be preserved by concatenation"
+        );
+        for match_i in machine_a.f {
+            let machine_ab_delta_q_epsilon = machine_ab.delta[match_i].get(&None);
+            // ε
+            // FA = (Q, Σ, δ, q0, F)
+            assert!(
+                machine_ab_delta_q_epsilon.is_some(),
+                "For f in machine_a.F, machine_c.δ(f, ε) => [ machine_c.F ] i.e. Delta of machine ab for each of F of machine a must have an epsilon transition."
+            );
+            // there is probably a better assertion that doesn't rely on knowing the internal workings of concatenation
+            // example, test that machine_a 'f' points to a node with an edge pointing to one of machine c 'f'
+            assert!(
+                machine_ab_delta_q_epsilon
+                    .unwrap()
+                    .contains(&machine_a.delta.len()),
+                "F of machine_a points to q0 of machine_b"
+            );
+        }
+
+        // machine_d = machine_a ⋅ machine_b ⋅ machine_c
+        // machine_d = (machine_a ⋅ machine_b) ⋅ machine_c
+        // machine_d = machine_a ⋅ (machine_b ⋅ machine_c)
+        assert_eq!(
+            machine_ab_c, machine_a_bc,
+            "Concatenation must be associative"
+        );
+
+        let machine_a_or_b_and_c = FA::from_concatenation(
+            // Union constructs a machine where |F| > 1
+            FA::from_union(
+                FA::from_literal('a').unwrap(),
+                FA::from_literal('b').unwrap(),
+            )
+            .unwrap(),
+            FA::from_literal('c').unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            1,
+            machine_a_or_b_and_c.f.len(),
+            "Concatenation must point all machine_a F at machine_b q0"
+        );
     }
 
     #[test]
-    fn supports_literals_and_concatenation() {
-        // Simplest NFA, a single literal
-        // println!("{:#?}", FA::from_literal('A').unwrap());
-        // println!(
-        //     "{:#?}",
-        //     FA::from_create_empty_states_left(FA::from_literal('A').unwrap(), 2).unwrap()
-        // );
-        // An epsilon transition is an edge with no value
-        // println!("{:#?}", Edge(0, None, 1));
-        println!(
-            "{}\n\n{:#?}",
-            FA::from_union(
-                FA::from_literal('a').unwrap(),
-                FA::from_literal('b').unwrap()
-            )
-            .unwrap(),
-            FA::from_union(
-                FA::from_literal('a').unwrap(),
-                FA::from_literal('b').unwrap()
-            )
-            .unwrap(),
-        );
-        // println!(
-        //     "Debug: concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{:#?}",
-        //     FA::from_composed_concatenation(vec![
-        //         FA::from_literal('A').unwrap(),
-        //         FA::from_literal('P').unwrap(),
-        //         FA::from_literal('P').unwrap(),
-        //         FA::from_literal('L').unwrap(),
-        //         FA::from_literal('E').unwrap(),
-        //     ])
-        //     .unwrap()
-        // );
-        // println!("Literal 'A':\n{}", FA::from_literal('A').unwrap());
-        // println!(
-        //     "Concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{}",
-        //     FA::from_composed_concatenation(vec![
-        //         FA::from_literal('A').unwrap(),
-        //         FA::from_literal('P').unwrap(),
-        //         FA::from_literal('P').unwrap(),
-        //         FA::from_literal('L').unwrap(),
-        //         FA::from_literal('E').unwrap(),
-        //     ])
-        //     .unwrap()
-        // );
-        // println!("{}", FA::from_literal('A').unwrap());
+    fn supports_formatting() {
+        println!("fmt::Display for FA,\n{}", FA::from_literal('a').unwrap());
+        println!("Debug for FA,\n{:#?}", FA::from_literal('a').unwrap());
     }
 }
