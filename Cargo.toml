@@ -1,5 +1,5 @@
 [package]
-name = "nfa"
+name = "automata"
 version = "0.1.0"
 authors = ["Bever1337 <bever1337@posteo.net>"]
 edition = "2018"
