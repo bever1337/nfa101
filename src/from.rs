@@ -12,32 +12,28 @@ use std::collections::HashMap;
  *   F: { 1 })
  * )
  */
-pub fn unit(transition: Transition) -> Result<FA, &'static str> {
+
+// -- ε --> (( 0 ))
+pub fn empty() -> Result<FA, &'static str> {
+    Ok(FA {
+        delta: vec![HashMap::new()],
+        q0: 0,
+        f: vec![0],
+    })
+}
+
+// ----> ( 0 ) -- 'a' --> (( 1 ))
+pub fn literal(c: char) -> Result<FA, &'static str> {
     let mut delta_q0: DeltaQ = HashMap::new();
-    let delta_q1: DeltaQ = HashMap::new();
-    if let Some(_) = delta_q0.insert(transition, vec![1]) {
+    if let Some(_) = delta_q0.insert(Some(c), vec![1]) {
         return Err("Unexpected error, new HashMap somehow had old value");
     }
     Ok(FA {
-        delta: vec![delta_q0, delta_q1],
+        delta: vec![delta_q0, HashMap::new()],
         q0: 0,
         f: vec![1],
     })
 }
-
-// ( 0 ) -- ε --> (( 1 ))
-pub fn epsilon() -> Result<FA, &'static str> {
-    unit(None)
-}
-
-// ( 0 ) -- 'a' --> (( 1 ))
-pub fn literal(c: char) -> Result<FA, &'static str> {
-    unit(Some(c))
-}
-
-// fn complement(machine: FA) -> Result<FA, &'static str> {
-//     Err("Not implemented")
-// }
 
 // concatenation is a binary operation where machine_c = machine_a ⋅ machine_b
 pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
@@ -88,14 +84,6 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
     machine_c.f = next_machine_c_matches;
     Ok(machine_c)
 }
-
-// fn difference(machine: FA) -> Result<FA, &'static str> {
-//     Err("Not implemented")
-// }
-
-// fn intersection(machine: FA) -> Result<FA, &'static str> {
-//     Err("Not implemented")
-// }
 
 // star is a unary operation where machine_b = machine_a*
 pub fn star(machine_a: FA) -> Result<FA, &'static str> {
@@ -202,47 +190,22 @@ mod tests {
     use crate::{from, FA};
 
     #[test]
-    fn test_from_unit() {
-        let the_smallest_epsilon_automaton: FA = from::unit(None).unwrap();
-        let the_smallest_literal_automaton: FA = from::unit(Some('a')).unwrap();
-        for automaton in &[
-            the_smallest_epsilon_automaton,
-            the_smallest_literal_automaton,
-        ] {
-            assert_eq!(2, automaton.delta.len(), "Must only have two states");
-            assert_eq!(
-                1,
-                automaton.f.len(),
-                "Must only have one state in set of F (match states)"
-            );
-            assert_ne!(
-                automaton.q0, automaton.f[0],
-                "q0 (start state) must not be in set of F (match states)."
-            );
-            assert_eq!(
-                1,
-                automaton.delta[automaton.q0].len(),
-                "Machine requires one transition from q0"
-            );
-            assert_eq!(
-                automaton.delta[automaton.q0].values().next().unwrap()[0],
-                automaton.f[0],
-                "Machine must transition from q0 to one of F"
-            );
-            assert_eq!(
-                0,
-                automaton.delta[automaton.f[0]].len(),
-                "Machine must not transition from match states"
-            );
-        }
-    }
-
-    #[test]
-    fn test_from_epsilon() {
-        let epsilon_automata: FA = from::epsilon().unwrap();
-        assert!(
-            epsilon_automata.delta[epsilon_automata.q0].contains_key(&None),
-            "An epsilon transition must be represented by none"
+    fn test_from_empty() {
+        let empty_automaton: FA = from::empty().unwrap();
+        assert_eq!(1, empty_automaton.delta.len(), "Must only have one state");
+        assert_eq!(
+            1,
+            empty_automaton.f.len(),
+            "Must only have one state in set of F (match states)"
+        );
+        assert_eq!(
+            empty_automaton.q0, empty_automaton.f[0],
+            "q0 (start state) must be in set of F (match states)."
+        );
+        assert_eq!(
+            0,
+            empty_automaton.delta[0].len(),
+            "Machine must have zero transitions"
         );
     }
 
@@ -253,6 +216,38 @@ mod tests {
             character_literal_automata.delta[character_literal_automata.q0]
                 .contains_key(&Some('a')),
             "Input literal must be preserved"
+        );
+        assert_eq!(
+            2,
+            character_literal_automata.delta.len(),
+            "Must only have two states"
+        );
+        assert_eq!(
+            1,
+            character_literal_automata.f.len(),
+            "Must only have one state in set of F (match states)"
+        );
+        assert_ne!(
+            character_literal_automata.q0, character_literal_automata.f[0],
+            "q0 (start state) must not be in set of F (match states)."
+        );
+        assert_eq!(
+            1,
+            character_literal_automata.delta[character_literal_automata.q0].len(),
+            "Machine requires one transition from q0"
+        );
+        assert_eq!(
+            character_literal_automata.delta[character_literal_automata.q0]
+                .values()
+                .next()
+                .unwrap()[0],
+            character_literal_automata.f[0],
+            "Machine must transition from q0 to one of F"
+        );
+        assert_eq!(
+            0,
+            character_literal_automata.delta[character_literal_automata.f[0]].len(),
+            "Machine must not transition from match states"
         );
     }
 
