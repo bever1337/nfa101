@@ -39,6 +39,7 @@ pub fn literal(c: char) -> Result<FA, &'static str> {
 //     Err("Not implemented")
 // }
 
+// concatenation is a binary operation where machine_c = machine_a ⋅ machine_b
 pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
     match (machine_a.f.len(), machine_b.f.len()) {
         (0, _) | (_, 0) => return Err("No match states, cannot concatenate machine"),
@@ -96,30 +97,45 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 //     Err("Not implemented")
 // }
 
-// fn star(machine: FA) -> Result<FA, &'static str> {
-//     Err("Not implemented")
-// }
+// star is a unary operation where machine_b = machine_a*
+pub fn star(machine_a: FA) -> Result<FA, &'static str> {
+    let mut machine_b = machine_a;
+    machine_b.q0 = machine_b.delta.len();
+    machine_b.delta.push(HashMap::new());
+    if let Some(_) = machine_b.delta[machine_b.q0].insert(None, vec![0]) {
+        // Sanity check
+        return Err("Unexpected error, new HashMap somehow had old value");
+    }
+    // for each match state in f, add epsilon transition to q0
+    for q in &machine_b.f {
+        if let Some(machine_b_delta_q_epsilon_q_set) = machine_b.delta[*q].get_mut(&None) {
+            machine_b_delta_q_epsilon_q_set.push(machine_b.q0);
+        } else {
+            if let Some(_) = machine_b.delta[*q].insert(None, vec![machine_b.q0]) {
+                // Sanity check
+                return Err("Unexpected error, new HashMap somehow had old value");
+            }
+        }
+    }
+    machine_b.f.push(machine_b.q0);
+    Ok(machine_b)
+}
 
-// machine_c = machina_a ∪ machine_b
-// given machine_a:
-//   ( 0 ) -- A --> (( 1 ))
-// and machine_b:
-//   ( 0 ) -- B --> (( 1 ))
-// the union is machine_c:
-//       /-- ε --> ( 0 ) -- A --> (( 1 ))
-//   ( 2 )
-//       \-- ε --> ( 3 ) -- B --> (( 4 ))
+// union is a binary operation where machine_c = machina_a ∪ machine_b
 pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
-    // construct first 'leg' of machine_c
+    // given machine_a:
+    //   ( 0 ) -- A --> (( 1 ))
+    // construct the first 'leg' of machine_c:
     //       /-- ε --> ( 0 ) -- A --> (( 1 ))
     //   ( 2 )
+
     // add first epsilon transition from q0 of machine_c to the former q0 of machine_a
     let mut machine_c_delta_q0: DeltaQ = HashMap::new();
     if let Some(_) = machine_c_delta_q0.insert(None, vec![machine_a.q0]) {
         return Err("Unexpected error, previous value cannot exist in new hash map");
     }
     let mut machine_c: FA = FA {
-        f: machine_a.f,            // begin with machine_a.F
+        f: machine_a.f,
         q0: machine_a.delta.len(), // q0 (initial state) of machine_c is equal to the length of Q (states) of machine_a, i.e. machine_c.q0 = | machine_a.Q |
         delta: vec![machine_a.delta, vec![machine_c_delta_q0]].concat(),
     };
@@ -133,7 +149,9 @@ pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
         .unwrap() // unwrapping because we already asserted this key/value
         .push(machine_b_shift);
 
-    // construct second 'leg' of machine_c
+    // given machine_b:
+    //   ( 0 ) -- B --> (( 1 ))
+    // construct the second 'leg' of machine_c:
     //   ( 2 )
     //       \-- ε --> ( 3 ) -- B --> (( 4 ))
     // recall delta is a function where (Q, Σ) -> [Q]
@@ -172,6 +190,10 @@ pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
             .push(machine_b_previous_match_i + machine_b_shift);
     }
 
+    // the union is machine_c:
+    //       /-- ε --> ( 0 ) -- A --> (( 1 ))
+    //   ( 2 )
+    //       \-- ε --> ( 3 ) -- B --> (( 4 ))
     Ok(machine_c)
 }
 
@@ -301,6 +323,68 @@ mod tests {
             1,
             machine_a_or_b_and_c.f.len(),
             "Concatenation must point all machine_a F at machine_b q0"
+        );
+    }
+
+    #[test]
+    fn test_from_star() {
+        let machine_a = from::literal('a').unwrap();
+        let machine_b = from::star(from::literal('a').unwrap()).unwrap();
+        assert_eq!(
+            machine_a.delta.len() + 1,
+            machine_b.delta.len(),
+            "Star operation must only create one new state"
+        );
+        assert_eq!(
+            machine_a.f.len() + 1,
+            machine_b.f.len(),
+            "Star operation must only create one new match state"
+        );
+        for q in machine_a.f {
+            assert!(
+                machine_b.delta[q]
+                    .get(&None)
+                    .unwrap()
+                    .contains(&machine_b.q0),
+                "q in F of machine_a must have epsilon transition to q0 of machine_b"
+            );
+        }
+        assert!(
+            machine_b.f.contains(&machine_b.q0),
+            "q0 after star operation must be match state"
+        );
+        assert!(
+            machine_b.delta[machine_b.q0]
+                .get(&None)
+                .unwrap()
+                .contains(&machine_a.q0),
+            "q0 of machine_b must transition to q0 of machine_a"
+        );
+    }
+
+    #[test]
+    fn test_from_union() {
+        let machine_a = from::literal('a').unwrap();
+        let machine_b = from::literal('b').unwrap();
+        let machine_a_or_b =
+            from::union(from::literal('a').unwrap(), from::literal('b').unwrap()).unwrap();
+        assert_eq!(
+            machine_a_or_b.delta.len(),
+            machine_a.delta.len() + machine_b.delta.len() + 1,
+            "Union of two machines must only create one new state"
+        );
+        assert_eq!(
+            machine_a_or_b.delta[machine_a_or_b.q0]
+                .get(&None)
+                .unwrap()
+                .len(),
+            2,
+            "q0 of machine_c must have two epsilon transitions"
+        );
+        assert_eq!(
+          machine_a_or_b.f.len(),
+          machine_a.f.len() + machine_b.f.len(),
+          "Union must result in same number of match states, | machine_c F | = | machine_a F | + | machine_b F |"
         );
     }
 }
