@@ -25,24 +25,32 @@ println!("{}", FA::from_literal('a').unwrap());
 Output:
 
 ```
-Ok(
-    FA {
-        delta: [
-            {
-                Some(
-                    'a',
-                ): [
-                    1,
-                ],
-            },
-            {},
-        ],
-        q0: 0,
-        f: [
-            1,
-        ],
-    }
+FA {
+    delta: [
+        {
+            Some(
+                'a',
+            ): [
+                1,
+            ],
+        },
+        {},
+    ],
+    q0: 0,
+    f: [
+        1,
+    ],
+}
+Finite Automata = (
+   Q: { 0, 1 },
+   Σ: { 0..255 },
+   δ: (Q, Σ) -> [Q],
+     0: Q, a: Σ -> { 1 }
+     1: Q
+   q0: 0,
+   F: { 1 }
 )
+test te
 ```
 
 2. Union ✓
