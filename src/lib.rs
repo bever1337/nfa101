@@ -423,7 +423,70 @@ mod tests {
 
     #[test]
     fn supports_formatting() {
-        println!("fmt::Display for FA,\n{}", FA::from_literal('a').unwrap());
-        println!("Debug for FA,\n{:#?}", FA::from_literal('a').unwrap());
+        println!("Debug for FA:\n{:#?}", FA::from_literal('a').unwrap());
+        println!(
+            "The concatenation of 'apple':\n{}",
+            FA::from_concatenation(
+                FA::from_concatenation(
+                    FA::from_concatenation(
+                        FA::from_concatenation(
+                            FA::from_literal('a').unwrap(),
+                            FA::from_literal('p').unwrap(),
+                        )
+                        .unwrap(),
+                        FA::from_literal('p').unwrap(),
+                    )
+                    .unwrap(),
+                    FA::from_literal('l').unwrap(),
+                )
+                .unwrap(),
+                FA::from_literal('e').unwrap(),
+            )
+            .unwrap()
+        );
+        println!(
+            "The machine 'orange|apple':\n{}",
+            FA::from_union(
+                FA::from_concatenation(
+                    FA::from_concatenation(
+                        FA::from_concatenation(
+                            FA::from_concatenation(
+                                FA::from_concatenation(
+                                    FA::from_literal('o').unwrap(),
+                                    FA::from_literal('r').unwrap(),
+                                )
+                                .unwrap(),
+                                FA::from_literal('a').unwrap(),
+                            )
+                            .unwrap(),
+                            FA::from_literal('n').unwrap(),
+                        )
+                        .unwrap(),
+                        FA::from_literal('g').unwrap(),
+                    )
+                    .unwrap(),
+                    FA::from_literal('e').unwrap()
+                )
+                .unwrap(),
+                FA::from_concatenation(
+                    FA::from_concatenation(
+                        FA::from_concatenation(
+                            FA::from_concatenation(
+                                FA::from_literal('a').unwrap(),
+                                FA::from_literal('p').unwrap(),
+                            )
+                            .unwrap(),
+                            FA::from_literal('p').unwrap(),
+                        )
+                        .unwrap(),
+                        FA::from_literal('l').unwrap(),
+                    )
+                    .unwrap(),
+                    FA::from_literal('e').unwrap(),
+                )
+                .unwrap()
+            )
+            .unwrap()
+        );
     }
 }
