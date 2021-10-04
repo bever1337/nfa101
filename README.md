@@ -10,57 +10,6 @@ I naively wanted to pattern match an arbitrary stream of data using regular expr
 4. q0: The initial Q
 5. F: The set of all accepting/'finished' states
 
-Input:
-
-```rust
-println!("Literal 'A':\n{}", FA::from_literal('A').unwrap());
-println!(
-    "Concatenate {{a}}, {{p}}, {{p}}, {{l}}, {{e}}:\n{}",
-    FA::from_concatenation(vec![
-        FA::from_literal('A').unwrap(),
-        FA::from_literal('P').unwrap(),
-        FA::from_literal('P').unwrap(),
-        FA::from_literal('L').unwrap(),
-        FA::from_literal('E').unwrap(),
-    ])
-    .unwrap()
-);
-```
-
-Output:
-
-```
-Literal 'A':
-Finite Automata = (
-   Q: { 0, 1 },
-   Σ: { 0..255 },
-   δ: (Q, Σ) -> [Q],
-     0: A -> { 1 }
-     1:
-   q0: 0,
-   F: { 1 }
-)
-
-Concatenate {a}, {p}, {p}, {l}, {e}:
-Finite Automata = (
-   Q: { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 },
-   Σ: { 0..255 },
-   δ: (Q, Σ) -> [Q],
-     0: A -> { 1 }
-     1: ε -> { 2 }
-     2: P -> { 3 }
-     3: ε -> { 4 }
-     4: P -> { 5 }
-     5: ε -> { 6 }
-     6: L -> { 7 }
-     7: ε -> { 8 }
-     8: E -> { 9 }
-     9:
-   q0: 0,
-   F: { 9 }
-)
-```
-
 ### 2. NFA construction
 
 1. From literal ✓
