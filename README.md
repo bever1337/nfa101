@@ -18,7 +18,8 @@ Input:
 
 ```rust
 // Simplest NFA, a single literal
-println!("{:#?}", FA::from_literal('A'));
+println!("{:#?}", FA::from_literal('a').unwrap());
+println!("{}", FA::from_literal('a').unwrap());
 ```
 
 Output:
@@ -42,7 +43,6 @@ Ok(
         ],
     }
 )
-Edge(0, None, 1)
 ```
 
 2. Union ✓
@@ -165,6 +165,7 @@ println!(
 Output:
 
 ```
+The concatenation of 'apple':
 Finite Automata = (
    Q: { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 },
    Σ: { 0..255 },

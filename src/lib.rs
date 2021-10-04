@@ -423,7 +423,8 @@ mod tests {
 
     #[test]
     fn supports_formatting() {
-        println!("Debug for FA:\n{:#?}", FA::from_literal('a').unwrap());
+        println!("{:#?}", FA::from_literal('a').unwrap());
+        println!("{}", FA::from_literal('a').unwrap());
         println!(
             "The concatenation of 'apple':\n{}",
             FA::from_concatenation(
