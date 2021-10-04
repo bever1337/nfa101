@@ -15,10 +15,9 @@ use std::collections::HashMap;
 pub fn unit(transition: Transition) -> Result<FA, &'static str> {
     let mut delta_q0: DeltaQ = HashMap::new();
     let delta_q1: DeltaQ = HashMap::new();
-    assert!(
-        delta_q0.insert(transition, vec![1]).is_none(),
-        "Unexpected error, new HashMap somehow had old value"
-    );
+    if let Some(_) = delta_q0.insert(transition, vec![1]) {
+        return Err("Unexpected error, new HashMap somehow had old value");
+    }
     Ok(FA {
         delta: vec![delta_q0, delta_q1],
         q0: 0,
@@ -116,12 +115,9 @@ pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
     //   ( 2 )
     // add first epsilon transition from q0 of machine_c to the former q0 of machine_a
     let mut machine_c_delta_q0: DeltaQ = HashMap::new();
-    assert!(
-        machine_c_delta_q0
-            .insert(None, vec![machine_a.q0])
-            .is_none(),
-        "Unexpected error, previous value cannot exist in new hash map"
-    );
+    if let Some(_) = machine_c_delta_q0.insert(None, vec![machine_a.q0]) {
+        return Err("Unexpected error, previous value cannot exist in new hash map");
+    }
     let mut machine_c: FA = FA {
         f: machine_a.f,            // begin with machine_a.F
         q0: machine_a.delta.len(), // q0 (initial state) of machine_c is equal to the length of Q (states) of machine_a, i.e. machine_c.q0 = | machine_a.Q |
@@ -157,15 +153,12 @@ pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
                 .collect::<QSet>();
 
             // insert shifted [Q] into transition map
-            assert!(
-                machine_c_delta_q
-                    .insert(
-                        machine_b_delta_q_transition,
-                        machine_c_delta_q_transition_q_set,
-                    )
-                    .is_none(),
-                "Unexpected error, previous value cannot exist in new hash map"
-            );
+            if let Some(_) = machine_c_delta_q.insert(
+                machine_b_delta_q_transition,
+                machine_c_delta_q_transition_q_set,
+            ) {
+                return Err("Unexpected error, previous value cannot exist in new hash map");
+            }
         }
 
         // add shifted delta function from machine_b onto machine_c

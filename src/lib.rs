@@ -1,6 +1,6 @@
 /**
  * for ease of copy+paste:
- * 
+ *
  * A finite automata is defined by the 5-tuple (
  *   Q:  Set of all states in automata,
  *   Σ:  Finite alphabet,
@@ -8,13 +8,12 @@
  *   q0: Initial n in Q
  *   F:  Set of all match states in Q
  * )
- * 
+ *
  * ε
- * 
+ *
  * FA = (Q, Σ, δ, q0, F)
- * 
+ *
  */
-
 use std::collections::HashMap;
 use std::fmt;
 
@@ -31,8 +30,8 @@ pub struct FA {
     // Q: Unordered vertices of δ, i.e. Q = Range { start: 0, end: machine.delta.len() }
     // Σ: ???
     delta: Delta, // δ
-    q0: StateId,   //q0
-    f: QSet,   // F
+    q0: StateId,  //q0
+    f: QSet,      // F
 }
 
 impl fmt::Display for FA {
