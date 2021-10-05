@@ -1,22 +1,10 @@
-/**
- * for ease of copy+paste:
- *
- * A finite automata is defined by the 5-tuple (
- *   Q:  Set of all states in automata,
- *   Σ:  Finite alphabet,
- *   δ:  A function accepting (1) n in Q and (2) symbol in Σ, returning a set of Q, { Q }
- *   q0: Initial n in Q
- *   F:  Set of all match states in Q
- * )
- *
- * ε
- *
- * FA = (Q, Σ, δ, q0, F)
- *
- */
+// for ease of copy+paste:
+// ε
+// FA = (Q, Σ, δ, q0, F)
 use std::collections::HashMap;
 use std::fmt;
 
+pub mod accept;
 pub mod from;
 
 pub type StateId = usize;
@@ -25,22 +13,51 @@ pub type QSet = Vec<StateId>;
 pub type DeltaQ = HashMap<Transition, QSet>;
 pub type Delta = Vec<DeltaQ>;
 
+///
+/// A struct (mostly) representing the formal definition of a finite automaton
+/// 
+/// # Definition
+/// 
+/// A machine is defined by the 5-tuple
+/// - Q:  Set of all states in automata,
+/// - Σ:  Finite alphabet,
+/// - δ:  A function accepting 1 of each Q and Σ, returning a set of Q
+/// - q0: Initial Q
+/// - F:  Set of all match states in Q
+///
+/// # Examples
+/// 
+/// Example 1:
+/// 
+/// ```
+/// use automata::{accept, from, FA};
+/// use std::ops::{Range};
+///
+/// let machine_a = accept::literal('a').unwrap();
+/// ```
+/// 
+/// Define the automaton using rust types and the `machine_a` object:
+/// - Q:  `Range { start: 0, end: machine_a.delta.len() }`
+/// - Σ:  `Option<char>`,
+/// - δ:  `machine_a.delta[machine_a.q0].get(&Some('a')).unwrap()`
+/// - q0: `machine_a.q0`
+/// - F:  `machine_a.f`
+/// 
 #[derive(Clone, Debug, PartialEq)]
 pub struct FA {
-    // Q: Unordered vertices of δ, i.e. Q = Range { start: 0, end: machine.delta.len() }
-    // Σ: ???
-    delta: Delta, // δ
-    q0: StateId,  //q0
-    f: QSet,      // F
+    pub delta: Delta,
+    pub q0: StateId,
+    pub f: QSet,
 }
 
 impl fmt::Display for FA {
+    /// Formats the definition of an automaton by 5-tuple
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "Finite Automata = (\n\
             \x20  Q: {{ {} }},\n\
-            \x20  Σ: {{ 0..255 }},\n\
+            \x20  Σ: {{ Any Opton<char> }},\n\
             \x20  δ: (Q, Σ) -> [Q],{}\n\
             \x20  q0: {},\n\
             \x20  F: {{ {} }}\n)",
@@ -94,28 +111,30 @@ impl fmt::Display for FA {
 
 #[cfg(test)]
 mod tests {
-    use crate::from;
+    use crate::{accept, from};
     #[test]
     fn supports_formatting() {
-        println!("{:#?}", from::literal('a').unwrap());
-        println!("{}", from::literal('a').unwrap());
+        println!("{:#?}", accept::literal('a').unwrap());
+        assert!(true, "Can't use debug format");
+
+        println!("{}", accept::literal('a').unwrap());
         println!(
             "The concatenation of 'apple':\n{}",
             from::concatenation(
                 from::concatenation(
                     from::concatenation(
                         from::concatenation(
-                            from::literal('a').unwrap(),
-                            from::literal('p').unwrap(),
+                            accept::literal('a').unwrap(),
+                            accept::literal('p').unwrap(),
                         )
                         .unwrap(),
-                        from::literal('p').unwrap(),
+                        accept::literal('p').unwrap(),
                     )
                     .unwrap(),
-                    from::literal('l').unwrap(),
+                    accept::literal('l').unwrap(),
                 )
                 .unwrap(),
-                from::literal('e').unwrap(),
+                accept::literal('e').unwrap(),
             )
             .unwrap()
         );
@@ -127,37 +146,37 @@ mod tests {
                         from::concatenation(
                             from::concatenation(
                                 from::concatenation(
-                                    from::literal('o').unwrap(),
-                                    from::literal('r').unwrap(),
+                                    accept::literal('o').unwrap(),
+                                    accept::literal('r').unwrap(),
                                 )
                                 .unwrap(),
-                                from::literal('a').unwrap(),
+                                accept::literal('a').unwrap(),
                             )
                             .unwrap(),
-                            from::literal('n').unwrap(),
+                            accept::literal('n').unwrap(),
                         )
                         .unwrap(),
-                        from::literal('g').unwrap(),
+                        accept::literal('g').unwrap(),
                     )
                     .unwrap(),
-                    from::literal('e').unwrap()
+                    accept::literal('e').unwrap()
                 )
                 .unwrap(),
                 from::concatenation(
                     from::concatenation(
                         from::concatenation(
                             from::concatenation(
-                                from::literal('a').unwrap(),
-                                from::literal('p').unwrap(),
+                                accept::literal('a').unwrap(),
+                                accept::literal('p').unwrap(),
                             )
                             .unwrap(),
-                            from::literal('p').unwrap(),
+                            accept::literal('p').unwrap(),
                         )
                         .unwrap(),
-                        from::literal('l').unwrap(),
+                        accept::literal('l').unwrap(),
                     )
                     .unwrap(),
-                    from::literal('e').unwrap(),
+                    accept::literal('e').unwrap(),
                 )
                 .unwrap()
             )

@@ -1,41 +1,81 @@
-use crate::{DeltaQ, QSet, Transition, FA};
+//! Create a new automaton from input automata
+
+use crate::{DeltaQ, QSet, FA};
 use std::collections::HashMap;
 
-/**
- * the smallest automata = (
- *   Q: { 0, 1 },
- *   Σ: { .. },
- *   δ: [
- *     (0 X ε) => { 1 }
- *   ],
- *   q0: 0,
- *   F: { 1 })
- * )
- */
-
-// -- ε --> (( 0 ))
-pub fn empty() -> Result<FA, &'static str> {
-    Ok(FA {
-        delta: vec![HashMap::new()],
-        q0: 0,
-        f: vec![0],
-    })
-}
-
-// ----> ( 0 ) -- 'a' --> (( 1 ))
-pub fn literal(c: char) -> Result<FA, &'static str> {
-    let mut delta_q0: DeltaQ = HashMap::new();
-    if let Some(_) = delta_q0.insert(Some(c), vec![1]) {
-        return Err("Unexpected error, new HashMap somehow had old value");
-    }
-    Ok(FA {
-        delta: vec![delta_q0, HashMap::new()],
-        q0: 0,
-        f: vec![1],
-    })
-}
-
-// concatenation is a binary operation where machine_c = machine_a ⋅ machine_b
+///
+/// Returns the concatenation machine_a and machine_b
+///
+/// Concatenation is an associative, binary operation:
+///
+/// ```ignore
+/// machine_c = machine_a ⋅ machine_b
+/// machine_n = machine_a ⋅ machine_b ⋅ machine_c
+/// machine_n = (machine_a ⋅ machine_b) ⋅ machine_c
+/// machine_n = machine_a ⋅ (machine_b ⋅ machine_c)
+/// ```
+///
+/// # Examples
+///
+/// Example 1:
+/// 
+/// ```rust
+/// use automata::{accept, from, FA};
+/// match from::concatenation(
+///     accept::literal('a').unwrap(),
+///     accept::literal('b').unwrap()
+/// ) {
+///     Ok(machine_c) => {
+///         println!("{}", machine_c);
+///     },
+///     Err(err) => {
+///         println!("Error creating automaton: {}", err);
+///     }
+/// }
+/// ```
+///
+/// # Implementation
+/// 
+/// ```ignore
+/// {
+///     delta: [
+///       { Some('a'): [1] },
+///       { None: [2] },
+///       { Some('b'): [3] },
+///       {}
+///     ],
+///     q0: 0,
+///     f: [3]
+/// }
+/// ```
+/// 
+/// # Definition
+///
+/// ```ignore
+/// (
+///     Q: { 0, 1, 2, 3 },
+///     Σ: { any character },
+///     δ: (0, 'a') => { 1 }
+///        (1, ε) => { 2 }
+///        (2, 'b') => { 3 }
+///     q0: 0,
+///     F: { 3 }
+/// )
+/// ```
+/// 
+/// # Diagram
+/// 
+///```ignore
+/// machine_a:
+/// ( 0 ) --> 'a' --> (( 1 ))
+/// 
+/// machine_b:
+/// ( 0 ) --> 'b' --> (( 1 ))
+/// 
+/// machine_c:
+/// ( 0 ) -- 'a' --> ( 1 ) -- ε --> ( 2 ) -- 'b' --> (( 3 ))
+/// ```
+///
 pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
     match (machine_a.f.len(), machine_b.f.len()) {
         (0, _) | (_, 0) => return Err("No match states, cannot concatenate machine"),
@@ -85,7 +125,78 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
     Ok(machine_c)
 }
 
-// star is a unary operation where machine_b = machine_a*
+/// Returns the star of machine_a
+/// 
+/// Star is a unary operation:
+/// 
+/// ```ignore
+/// machine_b = machine_a*
+/// ```
+/// 
+/// # Examples
+/// 
+/// Example 1:
+/// 
+/// ```rust
+/// use automata::{accept, from, FA};
+/// let machine_a: FA = accept::literal('a').unwrap();
+/// let machine_a_star: FA = from::star(machine_a).unwrap();
+/// match accept::literal('a') {
+///     Ok(machine_a) => {
+///         match from::star(machine_a) {
+///             Ok(machine_b) => {
+///                 println!("{}", machine_b);
+///             },
+///             Err(err) => {
+///                 println!("Error creating automaton: {}", err);
+///             }
+///         }
+///     },
+///     Err(err) => {
+///         println!("Error creating automaton: {}", err);
+///     }
+/// };
+/// ```
+/// 
+/// # Implementation
+/// 
+/// ```ignore
+/// {
+///     delta: [
+///         { Some('a'): [1] },
+///         { None: [2] },
+///         { None: [0] },
+///     ],
+///     q0: 2,
+///     f: [1,2]
+/// }
+/// ```
+///
+/// # Definition
+/// 
+/// ```ignore
+/// (
+///     Q: { 0, 1, 2 },
+///     Σ: { any character },
+///     δ: (0, 'a') => { 1 },
+///        (1, ε) => { 2 },
+///        (2, ε) => { 0 }
+///     q0: 2,
+///     F: { 1, 2 }
+/// )
+/// ```
+/// 
+/// # Diagram
+/// 
+/// ```ignore
+/// machine_a
+/// ( 0 ) -- 'a' --> (( 1 ))
+/// 
+/// machine_b
+/// (( 2 )) -- ε --> ( 0 ) -- 'a' --> (( 1 )) --|
+///      <----------------- ε ------------------|
+/// ```
+///
 pub fn star(machine_a: FA) -> Result<FA, &'static str> {
     let mut machine_b = machine_a;
     machine_b.q0 = machine_b.delta.len();
@@ -109,14 +220,79 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
     Ok(machine_b)
 }
 
-// union is a binary operation where machine_c = machina_a ∪ machine_b
+///
+/// Returns the union of machine_a and machine_b
+/// 
+/// Union is a binary operation:
+/// 
+/// ```ignore
+/// machine_c = machina_a ∪ machine_b
+/// ```
+/// 
+/// # Examples
+///
+/// Example 1:
+/// 
+/// ```rust
+/// use automata::{accept, from, FA};
+/// match from::union(
+///     accept::literal('a').unwrap(),
+///     accept::literal('b').unwrap()
+/// ) {
+///     Ok(machine_c) => {
+///         println!("{}", machine_c);
+///     },
+///     Err(err) => {
+///         println!("Error creating automaton: {}", err);
+///     }
+/// }
+/// ```
+/// 
+/// # Implementation
+/// ```ignore
+/// {
+///     delta: [
+///         { Some('a'): [1] },
+///         {},
+///         { None: [0, 3] },
+///         { Some('b'): [4] },
+///         {}
+///     ],
+///     q0: 2,
+///     f: [1, 4]
+/// }
+/// ```
+/// 
+/// # Definition
+/// 
+/// ```ignore
+/// (
+///     Q: { 0, 1, 2, 3, 4 }
+///     Σ: { any character },
+///     δ: (0 X 'a') => { 1 },
+///        (2 X ε) => { 0, 3 },
+///        (3 X 'b') => { 4 },
+///     q0: 2
+///     F: { 1, 4 }
+/// )
+/// ```
+/// 
+/// # Diagram
+/// 
+/// ```ignore
+/// machine_a
+/// ( 0 ) -- a --> (( 1 ))
+/// 
+/// machine_b
+/// ( 0 ) -- b --> (( 1 ))
+/// 
+/// machine_c
+///     /-- ε --> ( 0 ) -- a --> (( 1 ))
+/// ( 2 )
+///     \-- ε --> ( 3 ) -- b --> (( 4 ))
+/// ```
+/// 
 pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
-    // given machine_a:
-    //   ( 0 ) -- A --> (( 1 ))
-    // construct the first 'leg' of machine_c:
-    //       /-- ε --> ( 0 ) -- A --> (( 1 ))
-    //   ( 2 )
-
     // add first epsilon transition from q0 of machine_c to the former q0 of machine_a
     let mut machine_c_delta_q0: DeltaQ = HashMap::new();
     if let Some(_) = machine_c_delta_q0.insert(None, vec![machine_a.q0]) {
@@ -137,11 +313,6 @@ pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
         .unwrap() // unwrapping because we already asserted this key/value
         .push(machine_b_shift);
 
-    // given machine_b:
-    //   ( 0 ) -- B --> (( 1 ))
-    // construct the second 'leg' of machine_c:
-    //   ( 2 )
-    //       \-- ε --> ( 3 ) -- B --> (( 4 ))
     // recall delta is a function where (Q, Σ) -> [Q]
     // Q is an index in delta returning a HashMap. Σ (transition) is a key of HashMap returning a vector of state ids [Q]
     // for { A: [1] } in [{ A: [1] }, { ε: [2] }, { B: [3] }, { }]
@@ -178,93 +349,30 @@ pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
             .push(machine_b_previous_match_i + machine_b_shift);
     }
 
-    // the union is machine_c:
-    //       /-- ε --> ( 0 ) -- A --> (( 1 ))
-    //   ( 2 )
-    //       \-- ε --> ( 3 ) -- B --> (( 4 ))
     Ok(machine_c)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{from, FA};
-
-    #[test]
-    fn test_from_empty() {
-        let empty_automaton: FA = from::empty().unwrap();
-        assert_eq!(1, empty_automaton.delta.len(), "Must only have one state");
-        assert_eq!(
-            1,
-            empty_automaton.f.len(),
-            "Must only have one state in set of F (match states)"
-        );
-        assert_eq!(
-            empty_automaton.q0, empty_automaton.f[0],
-            "q0 (start state) must be in set of F (match states)."
-        );
-        assert_eq!(
-            0,
-            empty_automaton.delta[0].len(),
-            "Machine must have zero transitions"
-        );
-    }
-
-    #[test]
-    fn test_from_literal() {
-        let character_literal_automata: FA = from::literal('a').unwrap();
-        assert!(
-            character_literal_automata.delta[character_literal_automata.q0]
-                .contains_key(&Some('a')),
-            "Input literal must be preserved"
-        );
-        assert_eq!(
-            2,
-            character_literal_automata.delta.len(),
-            "Must only have two states"
-        );
-        assert_eq!(
-            1,
-            character_literal_automata.f.len(),
-            "Must only have one state in set of F (match states)"
-        );
-        assert_ne!(
-            character_literal_automata.q0, character_literal_automata.f[0],
-            "q0 (start state) must not be in set of F (match states)."
-        );
-        assert_eq!(
-            1,
-            character_literal_automata.delta[character_literal_automata.q0].len(),
-            "Machine requires one transition from q0"
-        );
-        assert_eq!(
-            character_literal_automata.delta[character_literal_automata.q0]
-                .values()
-                .next()
-                .unwrap()[0],
-            character_literal_automata.f[0],
-            "Machine must transition from q0 to one of F"
-        );
-        assert_eq!(
-            0,
-            character_literal_automata.delta[character_literal_automata.f[0]].len(),
-            "Machine must not transition from match states"
-        );
-    }
+    use crate::{accept, from};
 
     #[test]
     fn test_from_concatenation() {
-        let machine_a = from::literal('a').unwrap();
-        let machine_b = from::literal('b').unwrap();
+        let machine_a = accept::literal('a').unwrap();
+        let machine_b = accept::literal('b').unwrap();
         let machine_ab =
-            from::concatenation(from::literal('a').unwrap(), from::literal('b').unwrap()).unwrap();
+            from::concatenation(accept::literal('a').unwrap(), accept::literal('b').unwrap())
+                .unwrap();
         let machine_ab_c = from::concatenation(
-            from::concatenation(from::literal('a').unwrap(), from::literal('b').unwrap()).unwrap(),
-            from::literal('c').unwrap(),
+            from::concatenation(accept::literal('a').unwrap(), accept::literal('b').unwrap())
+                .unwrap(),
+            accept::literal('c').unwrap(),
         )
         .unwrap();
         let machine_a_bc = from::concatenation(
-            from::literal('a').unwrap(),
-            from::concatenation(from::literal('b').unwrap(), from::literal('c').unwrap()).unwrap(),
+            accept::literal('a').unwrap(),
+            from::concatenation(accept::literal('b').unwrap(), accept::literal('c').unwrap())
+                .unwrap(),
         )
         .unwrap();
 
@@ -310,8 +418,8 @@ mod tests {
 
         let machine_a_or_b_and_c = from::concatenation(
             // Union constructs a machine where |F| > 1
-            from::union(from::literal('a').unwrap(), from::literal('b').unwrap()).unwrap(),
-            from::literal('c').unwrap(),
+            from::union(accept::literal('a').unwrap(), accept::literal('b').unwrap()).unwrap(),
+            accept::literal('c').unwrap(),
         )
         .unwrap();
         assert_eq!(
@@ -323,8 +431,9 @@ mod tests {
 
     #[test]
     fn test_from_star() {
-        let machine_a = from::literal('a').unwrap();
-        let machine_b = from::star(from::literal('a').unwrap()).unwrap();
+        let machine_a = accept::literal('a').unwrap();
+        let machine_b = from::star(accept::literal('a').unwrap()).unwrap();
+        println!("{}", machine_b);
         assert_eq!(
             machine_a.delta.len() + 1,
             machine_b.delta.len(),
@@ -359,10 +468,10 @@ mod tests {
 
     #[test]
     fn test_from_union() {
-        let machine_a = from::literal('a').unwrap();
-        let machine_b = from::literal('b').unwrap();
+        let machine_a = accept::literal('a').unwrap();
+        let machine_b = accept::literal('b').unwrap();
         let machine_a_or_b =
-            from::union(from::literal('a').unwrap(), from::literal('b').unwrap()).unwrap();
+            from::union(accept::literal('a').unwrap(), accept::literal('b').unwrap()).unwrap();
         assert_eq!(
             machine_a_or_b.delta.len(),
             machine_a.delta.len() + machine_b.delta.len() + 1,
