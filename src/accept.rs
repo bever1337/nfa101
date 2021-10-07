@@ -25,7 +25,7 @@ use std::collections::HashMap;
 ///
 /// # Implementation
 ///
-/// ```ignore
+/// ```text
 /// {
 ///     delta: [],
 ///     q0: 0,
@@ -35,7 +35,7 @@ use std::collections::HashMap;
 ///
 /// # Definition
 ///
-/// ```ignore
+/// ```text
 /// (
 ///     Q: { 0 },
 ///     Σ: { any character },
@@ -47,7 +47,7 @@ use std::collections::HashMap;
 ///
 /// # Diagram
 ///
-/// ```ignore
+/// ```text
 /// -- ε --> (( 0 ))
 /// ```
 ///
@@ -81,7 +81,7 @@ pub fn epsilon() -> Result<FA, &'static str> {
 ///
 /// # Implementation
 ///
-/// ```ignore
+/// ```text
 /// {
 ///     delta: [
 ///         { Some(a): [1] }
@@ -93,7 +93,7 @@ pub fn epsilon() -> Result<FA, &'static str> {
 ///
 /// # Definition
 ///
-/// ```ignore
+/// ```text
 /// (
 ///     Q: { 0, 1 },
 ///     Σ: { any character },
@@ -105,7 +105,7 @@ pub fn epsilon() -> Result<FA, &'static str> {
 ///
 /// # Diagram
 ///
-/// ```ignore
+/// ```text
 /// ----> ( 0 ) -- 'a' --> (( 1 ))
 /// ```
 ///
@@ -143,7 +143,7 @@ pub fn literal(c: char) -> Result<FA, &'static str> {
 ///
 /// # Implementation
 ///
-/// ```ignore
+/// ```text
 /// {
 ///     delta: [
 ///       {}
@@ -155,7 +155,7 @@ pub fn literal(c: char) -> Result<FA, &'static str> {
 ///
 /// # Definition
 ///
-/// ```ignore
+/// ```text
 /// (
 ///   Q: { 0 },
 ///   Σ: { any character },
@@ -167,7 +167,7 @@ pub fn literal(c: char) -> Result<FA, &'static str> {
 ///
 /// # Diagram
 ///
-/// ```ignore
+/// ```text
 /// ----> ( 0 )
 /// ```
 ///

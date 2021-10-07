@@ -7,10 +7,19 @@ use std::fmt;
 pub mod accept;
 pub mod from;
 
+/// Unique id representing a state, `usize`
 pub type StateId = usize;
+
+/// A transition between states, `Option<char>`
 pub type Transition = Option<char>;
+
+/// Set of states, `Vec<StateId>`
 pub type QSet = Vec<StateId>;
+
+/// Second-half of delta function, `HashMap<Transition, QSet>`
 pub type DeltaQ = HashMap<Transition, QSet>;
+
+/// First-half of delta function, `Vec<DeltaQ>`
 pub type Delta = Vec<DeltaQ>;
 
 ///

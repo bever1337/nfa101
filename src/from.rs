@@ -8,7 +8,7 @@ use std::collections::HashMap;
 ///
 /// Concatenation is an associative, binary operation:
 ///
-/// ```ignore
+/// ```text
 /// machine_c = machine_a ⋅ machine_b
 /// machine_n = machine_a ⋅ machine_b ⋅ machine_c
 /// machine_n = (machine_a ⋅ machine_b) ⋅ machine_c
@@ -36,7 +36,7 @@ use std::collections::HashMap;
 ///
 /// # Implementation
 /// 
-/// ```ignore
+/// ```text
 /// {
 ///     delta: [
 ///       { Some('a'): [1] },
@@ -51,7 +51,7 @@ use std::collections::HashMap;
 /// 
 /// # Definition
 ///
-/// ```ignore
+/// ```text
 /// (
 ///     Q: { 0, 1, 2, 3 },
 ///     Σ: { any character },
@@ -65,7 +65,7 @@ use std::collections::HashMap;
 /// 
 /// # Diagram
 /// 
-///```ignore
+///```text
 /// machine_a:
 /// ( 0 ) --> 'a' --> (( 1 ))
 /// 
@@ -129,7 +129,7 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 /// 
 /// Star is a unary operation:
 /// 
-/// ```ignore
+/// ```text
 /// machine_b = machine_a*
 /// ```
 /// 
@@ -160,7 +160,7 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 /// 
 /// # Implementation
 /// 
-/// ```ignore
+/// ```text
 /// {
 ///     delta: [
 ///         { Some('a'): [1] },
@@ -174,7 +174,7 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 ///
 /// # Definition
 /// 
-/// ```ignore
+/// ```text
 /// (
 ///     Q: { 0, 1, 2 },
 ///     Σ: { any character },
@@ -188,7 +188,7 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 /// 
 /// # Diagram
 /// 
-/// ```ignore
+/// ```text
 /// machine_a
 /// ( 0 ) -- 'a' --> (( 1 ))
 /// 
@@ -225,7 +225,7 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
 /// 
 /// Union is a binary operation:
 /// 
-/// ```ignore
+/// ```text
 /// machine_c = machina_a ∪ machine_b
 /// ```
 /// 
@@ -249,7 +249,7 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
 /// ```
 /// 
 /// # Implementation
-/// ```ignore
+/// ```text
 /// {
 ///     delta: [
 ///         { Some('a'): [1] },
@@ -265,7 +265,7 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
 /// 
 /// # Definition
 /// 
-/// ```ignore
+/// ```text
 /// (
 ///     Q: { 0, 1, 2, 3, 4 }
 ///     Σ: { any character },
@@ -279,7 +279,7 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
 /// 
 /// # Diagram
 /// 
-/// ```ignore
+/// ```text
 /// machine_a
 /// ( 0 ) -- a --> (( 1 ))
 /// 
