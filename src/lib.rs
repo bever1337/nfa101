@@ -10,23 +10,23 @@ pub mod from;
 /// Unique id representing a state, `usize`
 pub type StateId = usize;
 
-/// A transition between states, `Option<char>`
-pub type Transition = Option<char>;
+// A transition between states, `Option<char>`
+// pub type Transition = Option<char>;
 
 /// Set of states, `Vec<StateId>`
 pub type QSet = Vec<StateId>;
 
-/// Second-half of delta function, `HashMap<Transition, QSet>`
-pub type DeltaQ = HashMap<Transition, QSet>;
+/// Second-half of delta function, `HashMap<Option<char>, QSet>`
+pub type DeltaQ = HashMap<Option<char>, QSet>;
 
 /// First-half of delta function, `Vec<DeltaQ>`
 pub type Delta = Vec<DeltaQ>;
 
 ///
 /// A struct (mostly) representing the formal definition of a finite automaton
-/// 
+///
 /// # Definition
-/// 
+///
 /// A machine is defined by the 5-tuple
 /// - Q:  Set of all states in automata,
 /// - Σ:  Finite alphabet,
@@ -35,23 +35,23 @@ pub type Delta = Vec<DeltaQ>;
 /// - F:  Set of all match states in Q
 ///
 /// # Examples
-/// 
+///
 /// Example 1:
-/// 
+///
 /// ```
 /// use automata::{accept, from, FA};
 /// use std::ops::{Range};
 ///
 /// let machine_a = accept::literal('a').unwrap();
 /// ```
-/// 
+///
 /// Define the automaton using rust types and the `machine_a` object:
 /// - Q:  `Range { start: 0, end: machine_a.delta.len() }`
 /// - Σ:  `Option<char>`,
 /// - δ:  `machine_a.delta[machine_a.q0].get(&Some('a')).unwrap()`
 /// - q0: `machine_a.q0`
 /// - F:  `machine_a.f`
-/// 
+///
 #[derive(Clone, Debug, PartialEq)]
 pub struct FA {
     pub delta: Delta,
@@ -120,77 +120,13 @@ impl fmt::Display for FA {
 
 #[cfg(test)]
 mod tests {
-    use crate::{accept, from};
+    use crate::accept;
     #[test]
     fn supports_formatting() {
         println!("{:#?}", accept::literal('a').unwrap());
         assert!(true, "Can't use debug format");
 
         println!("{}", accept::literal('a').unwrap());
-        println!(
-            "The concatenation of 'apple':\n{}",
-            from::concatenation(
-                from::concatenation(
-                    from::concatenation(
-                        from::concatenation(
-                            accept::literal('a').unwrap(),
-                            accept::literal('p').unwrap(),
-                        )
-                        .unwrap(),
-                        accept::literal('p').unwrap(),
-                    )
-                    .unwrap(),
-                    accept::literal('l').unwrap(),
-                )
-                .unwrap(),
-                accept::literal('e').unwrap(),
-            )
-            .unwrap()
-        );
-        println!(
-            "The machine 'orange|apple':\n{}",
-            from::union(
-                from::concatenation(
-                    from::concatenation(
-                        from::concatenation(
-                            from::concatenation(
-                                from::concatenation(
-                                    accept::literal('o').unwrap(),
-                                    accept::literal('r').unwrap(),
-                                )
-                                .unwrap(),
-                                accept::literal('a').unwrap(),
-                            )
-                            .unwrap(),
-                            accept::literal('n').unwrap(),
-                        )
-                        .unwrap(),
-                        accept::literal('g').unwrap(),
-                    )
-                    .unwrap(),
-                    accept::literal('e').unwrap()
-                )
-                .unwrap(),
-                from::concatenation(
-                    from::concatenation(
-                        from::concatenation(
-                            from::concatenation(
-                                accept::literal('a').unwrap(),
-                                accept::literal('p').unwrap(),
-                            )
-                            .unwrap(),
-                            accept::literal('p').unwrap(),
-                        )
-                        .unwrap(),
-                        accept::literal('l').unwrap(),
-                    )
-                    .unwrap(),
-                    accept::literal('e').unwrap(),
-                )
-                .unwrap()
-            )
-            .unwrap()
-        );
         assert!(true, "Can't use std::fmt::Display implementation");
     }
 }

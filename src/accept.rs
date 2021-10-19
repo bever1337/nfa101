@@ -5,11 +5,11 @@ use std::collections::HashMap;
 
 ///
 /// Returns an automaton accepting an epsilon
-/// 
+///
 /// # Examples
 ///
 /// Example 1:
-/// 
+///
 /// ```rust
 /// use automata::{accept, FA};
 /// let epsilon_automaton_result: Result<FA, &'static str> = accept::epsilon();
@@ -50,8 +50,8 @@ use std::collections::HashMap;
 /// ```text
 /// -- ε --> (( 0 ))
 /// ```
-///
 pub fn epsilon() -> Result<FA, &'static str> {
+    // Expression 1 = epsilon
     Ok(FA {
         delta: vec![HashMap::new()],
         q0: 0,
@@ -61,11 +61,11 @@ pub fn epsilon() -> Result<FA, &'static str> {
 
 ///
 /// Returns an automaton accepting a literal
-/// 
+///
 /// # Examples
 ///
 /// Example 1:
-/// 
+///
 /// ```rust
 /// use automata::{accept, FA};
 /// let literal_automaton_result: Result<FA, &'static str> = accept::literal('a');
@@ -110,6 +110,7 @@ pub fn epsilon() -> Result<FA, &'static str> {
 /// ```
 ///
 pub fn literal(c: char) -> Result<FA, &'static str> {
+    // Expression a
     let mut delta_q0: DeltaQ = HashMap::new();
     if let Some(_) = delta_q0.insert(Some(c), vec![1]) {
         return Err("Unexpected error, new HashMap somehow had old value");
@@ -123,11 +124,11 @@ pub fn literal(c: char) -> Result<FA, &'static str> {
 
 ///
 /// Returns an automaton accepting nothing
-/// 
+///
 /// # Examples
 ///
 /// Example 1:
-/// 
+///
 /// ```rust
 /// use automata::{accept, FA};
 /// let nothing_automaton_result: Result<FA, &'static str> = accept::nothing();
@@ -172,6 +173,7 @@ pub fn literal(c: char) -> Result<FA, &'static str> {
 /// ```
 ///
 pub fn nothing() -> Result<FA, &'static str> {
+    // Expression 0
     Ok(FA {
         delta: vec![HashMap::new()],
         q0: 0,
