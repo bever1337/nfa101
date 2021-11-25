@@ -1,4 +1,6 @@
-#
+# Regexxx, an implementation of Augmented Non-Deterministic Finite Automata
+
+[Documentation](https://bever1337.github.io/regexxx/automata/index.html)
 
 ## Preface
 
