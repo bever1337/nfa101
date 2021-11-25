@@ -18,10 +18,10 @@ use std::collections::HashMap;
 /// # Examples
 ///
 /// Example 1:
-/// 
+///
 /// ```rust
 /// use automata::{accept, from, FA};
-/// match from::concatenation(
+/// match from::concatenate(
 ///     accept::literal('a').unwrap(),
 ///     accept::literal('b').unwrap()
 /// ) {
@@ -35,7 +35,7 @@ use std::collections::HashMap;
 /// ```
 ///
 /// # Implementation
-/// 
+///
 /// ```text
 /// {
 ///     delta: [
@@ -48,7 +48,7 @@ use std::collections::HashMap;
 ///     f: [3]
 /// }
 /// ```
-/// 
+///
 /// # Definition
 ///
 /// ```text
@@ -62,21 +62,21 @@ use std::collections::HashMap;
 ///     F: { 3 }
 /// )
 /// ```
-/// 
+///
 /// # Diagram
-/// 
+///
 ///```text
 /// machine_a:
 /// ( 0 ) --> 'a' --> (( 1 ))
-/// 
+///
 /// machine_b:
 /// ( 0 ) --> 'b' --> (( 1 ))
-/// 
+///
 /// machine_c:
 /// ( 0 ) -- 'a' --> ( 1 ) -- ε --> ( 2 ) -- 'b' --> (( 3 ))
 /// ```
 ///
-pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
+pub fn concatenate(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
     match (machine_a.f.len(), machine_b.f.len()) {
         (0, _) | (_, 0) => return Err("No match states, cannot concatenate machine"),
         _ => {}
@@ -126,17 +126,17 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 }
 
 /// Returns the star of machine_a
-/// 
+///
 /// Star is a unary operation:
-/// 
+///
 /// ```text
 /// machine_b = machine_a*
 /// ```
-/// 
+///
 /// # Examples
-/// 
+///
 /// Example 1:
-/// 
+///
 /// ```rust
 /// use automata::{accept, from, FA};
 /// let machine_a: FA = accept::literal('a').unwrap();
@@ -157,9 +157,9 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 ///     }
 /// };
 /// ```
-/// 
+///
 /// # Implementation
-/// 
+///
 /// ```text
 /// {
 ///     delta: [
@@ -173,7 +173,7 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 /// ```
 ///
 /// # Definition
-/// 
+///
 /// ```text
 /// (
 ///     Q: { 0, 1, 2 },
@@ -185,13 +185,13 @@ pub fn concatenation(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
 ///     F: { 1, 2 }
 /// )
 /// ```
-/// 
+///
 /// # Diagram
-/// 
+///
 /// ```text
 /// machine_a
 /// ( 0 ) -- 'a' --> (( 1 ))
-/// 
+///
 /// machine_b
 /// (( 2 )) -- ε --> ( 0 ) -- 'a' --> (( 1 )) --|
 ///      <----------------- ε ------------------|
@@ -222,17 +222,17 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
 
 ///
 /// Returns the union of machine_a and machine_b
-/// 
+///
 /// Union is a binary operation:
-/// 
+///
 /// ```text
 /// machine_c = machina_a ∪ machine_b
 /// ```
-/// 
+///
 /// # Examples
 ///
 /// Example 1:
-/// 
+///
 /// ```rust
 /// use automata::{accept, from, FA};
 /// match from::union(
@@ -247,7 +247,7 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
 ///     }
 /// }
 /// ```
-/// 
+///
 /// # Implementation
 /// ```text
 /// {
@@ -262,9 +262,9 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
 ///     f: [1, 4]
 /// }
 /// ```
-/// 
+///
 /// # Definition
-/// 
+///
 /// ```text
 /// (
 ///     Q: { 0, 1, 2, 3, 4 }
@@ -276,22 +276,22 @@ pub fn star(machine_a: FA) -> Result<FA, &'static str> {
 ///     F: { 1, 4 }
 /// )
 /// ```
-/// 
+///
 /// # Diagram
-/// 
+///
 /// ```text
 /// machine_a
 /// ( 0 ) -- a --> (( 1 ))
-/// 
+///
 /// machine_b
 /// ( 0 ) -- b --> (( 1 ))
-/// 
+///
 /// machine_c
 ///     /-- ε --> ( 0 ) -- a --> (( 1 ))
 /// ( 2 )
 ///     \-- ε --> ( 3 ) -- b --> (( 4 ))
 /// ```
-/// 
+///
 pub fn union(machine_a: FA, machine_b: FA) -> Result<FA, &'static str> {
     // add first epsilon transition from q0 of machine_c to the former q0 of machine_a
     let mut machine_c_delta_q0: DeltaQ = HashMap::new();
@@ -357,21 +357,21 @@ mod tests {
     use crate::{accept, from};
 
     #[test]
-    fn test_from_concatenation() {
+    fn test_from_concatenate() {
         let machine_a = accept::literal('a').unwrap();
         let machine_b = accept::literal('b').unwrap();
         let machine_ab =
-            from::concatenation(accept::literal('a').unwrap(), accept::literal('b').unwrap())
+            from::concatenate(accept::literal('a').unwrap(), accept::literal('b').unwrap())
                 .unwrap();
-        let machine_ab_c = from::concatenation(
-            from::concatenation(accept::literal('a').unwrap(), accept::literal('b').unwrap())
+        let machine_ab_c = from::concatenate(
+            from::concatenate(accept::literal('a').unwrap(), accept::literal('b').unwrap())
                 .unwrap(),
             accept::literal('c').unwrap(),
         )
         .unwrap();
-        let machine_a_bc = from::concatenation(
+        let machine_a_bc = from::concatenate(
             accept::literal('a').unwrap(),
-            from::concatenation(accept::literal('b').unwrap(), accept::literal('c').unwrap())
+            from::concatenate(accept::literal('b').unwrap(), accept::literal('c').unwrap())
                 .unwrap(),
         )
         .unwrap();
@@ -416,7 +416,7 @@ mod tests {
             "Concatenation must be associative"
         );
 
-        let machine_a_or_b_and_c = from::concatenation(
+        let machine_a_or_b_and_c = from::concatenate(
             // Union constructs a machine where |F| > 1
             from::union(accept::literal('a').unwrap(), accept::literal('b').unwrap()).unwrap(),
             accept::literal('c').unwrap(),
