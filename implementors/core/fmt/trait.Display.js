@@ -1,3 +1,0 @@
-(function() {var implementors = {};
-implementors["automata"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/nightly/core/fmt/trait.Display.html\" title=\"trait core::fmt::Display\">Display</a> for <a class=\"struct\" href=\"automata/struct.ANFA.html\" title=\"struct automata::ANFA\">ANFA</a>","synthetic":false,"types":["automata::ANFA"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
