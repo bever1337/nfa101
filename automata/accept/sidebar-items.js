@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["epsilon","Returns an automaton accepting an epsilon"],["literal","Returns an automaton accepting a literal"],["nothing","Returns an automaton accepting nothing"]]});
