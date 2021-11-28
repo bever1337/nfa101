@@ -4,7 +4,9 @@
 
 ## Preface
 
-See `grathwohl2014-0-paper.pdf` in the docs folder
+- [Optimally Streaming Greedy Regular Expression Parsing](./pubs/grathwohl2014-0-paper.pdf)
+- [Bit-coded Regular Expression Parsing](./pubs/fritz-paper.pdf)
+- [Regular Expression Search Algorithm](./pubs/Thompson-1968.pdf)
 
 Augmented non-deterministic finite automata are defined by the 4-tuple:
 
