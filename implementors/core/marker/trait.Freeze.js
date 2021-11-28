@@ -1,3 +1,3 @@
 (function() {var implementors = {};
-implementors["automata"] = [{"text":"impl Freeze for <a class=\"struct\" href=\"automata/struct.AutomataRef.html\" title=\"struct automata::AutomataRef\">AutomataRef</a>","synthetic":true,"types":["automata::AutomataRef"]},{"text":"impl Freeze for <a class=\"struct\" href=\"automata/struct.ANFA.html\" title=\"struct automata::ANFA\">ANFA</a>","synthetic":true,"types":["automata::ANFA"]}];
+implementors["regexxx"] = [{"text":"impl Freeze for <a class=\"struct\" href=\"regexxx/struct.AutomataRef.html\" title=\"struct regexxx::AutomataRef\">AutomataRef</a>","synthetic":true,"types":["regexxx::AutomataRef"]},{"text":"impl Freeze for <a class=\"struct\" href=\"regexxx/struct.ANFA.html\" title=\"struct regexxx::ANFA\">ANFA</a>","synthetic":true,"types":["regexxx::ANFA"]}];
 if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

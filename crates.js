@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["automata"];
+window.ALL_CRATES = ["regexxx"];

@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["concatenation","Returns the concatenation machine_a and machine_b"],["star","Returns the star of machine_a"],["union","Returns the union of machine_a and machine_b"]]});
