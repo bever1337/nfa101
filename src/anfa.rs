@@ -1,7 +1,7 @@
 use crate::{Delta, DeltaQ, QId};
 
 /// Reference to automata initial and final states
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct AutomataRef {
     /// initial state
     pub q0: QId,
@@ -16,7 +16,7 @@ pub struct AutomataRef {
 /// - delta, `δ ⊆ State × T × State` is a labeled transition relation with labels `T = Σ ⊎ {0, 1, ε}`
 /// - q0, initial state
 /// - f, final state
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct ANFA {
     /// `δ ⊆ State × T × State` is a labeled transition relation with labels `T = Σ ⊎ {0, 1, ε}`
     pub delta: Delta,
