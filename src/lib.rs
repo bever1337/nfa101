@@ -16,12 +16,10 @@ pub mod anfa;
 pub type QId = usize;
 
 /// Transition is 2nd and 3rd arguments `T` and `State` in `δ ⊆ State × T × State`
-pub type Transition = (Option<char>, QId);
+pub type Transition = Option<(Option<char>, QId)>;
 
 /// 1 or 2 results of δ, optionally labelled. When length is 2, operation is union.
-pub type DeltaQ = alloc::vec::Vec<Transition>;
+pub type DeltaQ = [Transition; 2];
 
 /// Index of Delta is the first argument `State` in `δ ⊆ State × T × State`
 pub type Delta = alloc::vec::Vec<DeltaQ>;
-
-

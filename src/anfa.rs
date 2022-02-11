@@ -1,5 +1,5 @@
 use crate::alloc::vec;
-use crate::{Delta, DeltaQ, QId};
+use crate::{Delta, QId};
 
 /// Reference to automata initial and final states
 #[derive(Debug, PartialEq)]
@@ -102,10 +102,9 @@ impl ANFA {
     /// ```
     pub fn expr_0(&mut self) -> Result<AutomataRef, &'static str> {
         let q0 = self.delta.len();
-        self.delta.push(vec![]);
-
-        let f = self.delta.len();
-        self.delta.push(vec![]);
+        let f = q0 + 1;
+        self.delta.push([None, None]);
+        self.delta.push([None, None]);
 
         Ok(AutomataRef { q0, f })
     }
@@ -143,7 +142,7 @@ impl ANFA {
     /// ```
     pub fn expr_1(&mut self) -> Result<AutomataRef, &'static str> {
         let q0: usize = self.delta.len();
-        self.delta.push(vec![]);
+        self.delta.push([None, None]);
 
         Ok(AutomataRef { q0, f: q0 })
     }
@@ -181,10 +180,8 @@ impl ANFA {
     pub fn expr_a(&mut self, c: char) -> Result<AutomataRef, &'static str> {
         let q0 = self.delta.len();
         let f = q0 + 1;
-        let delta_q0: DeltaQ = vec![(Some(c), f)];
-        self.delta.push(delta_q0);
-        let delta_qf: DeltaQ = vec![];
-        self.delta.push(delta_qf);
+        self.delta.push([Some((Some(c), f)), None]);
+        self.delta.push([None, None]);
 
         Ok(AutomataRef { q0, f })
     }
@@ -254,11 +251,8 @@ impl ANFA {
         machine_ref_a: &AutomataRef,
         machine_ref_b: &AutomataRef,
     ) -> Result<AutomataRef, &'static str> {
-        match [
-            self.delta[machine_ref_a.f].len(),
-            self.delta[machine_ref_b.f].len(),
-        ] {
-            [0, 0] => {}
+        match [self.delta[machine_ref_a.f], self.delta[machine_ref_b.f]] {
+            [[None, None], [None, None]] => {}
             _ => {
                 return Err(
                     "Final states of machine_ref_a and machine_ref_b can NOT have transitions",
@@ -266,7 +260,7 @@ impl ANFA {
             }
         }
 
-        self.delta[machine_ref_a.f].push((None, *&machine_ref_b.q0));
+        self.delta[machine_ref_a.f] = [Some((None, *&machine_ref_b.q0)), None];
 
         Ok(AutomataRef {
             q0: machine_ref_a.q0,
@@ -329,24 +323,20 @@ impl ANFA {
     ///                     \-- 1 --> (( 4 ))
     /// ```
     pub fn star(&mut self, machine_ref_a: &AutomataRef) -> Result<AutomataRef, &'static str> {
-        match self.delta[machine_ref_a.f].len() {
-            0 => {}
+        match self.delta[machine_ref_a.f] {
+            [None, None] => {}
             _ => return Err("Final state of machine_ref_a can NOT have transitions"),
         };
 
         let q0 = self.delta.len();
-        self.delta.push(vec![]);
-
         let q_next = q0 + 1;
-        self.delta.push(vec![]);
-
         let f = q_next + 1;
-        self.delta.push(vec![]);
 
-        self.delta[q0].push((None, *&q_next));
-        self.delta[q_next].push((None, *&machine_ref_a.q0));
-        self.delta[q_next].push((None, *&f));
-        self.delta[machine_ref_a.f].push((None, *&q_next));
+        self.delta.push([Some((None, q_next)), None]);
+        self.delta
+            .push([Some((None, machine_ref_a.q0)), Some((None, f))]);
+        self.delta.push([None, None]);
+        self.delta[machine_ref_a.f] = [Some((None, q_next)), None];
 
         Ok(AutomataRef { q0, f })
     }
@@ -407,11 +397,8 @@ impl ANFA {
         machine_ref_a: &AutomataRef,
         machine_ref_b: &AutomataRef,
     ) -> Result<AutomataRef, &'static str> {
-        match [
-            self.delta[machine_ref_a.f].len(),
-            self.delta[machine_ref_b.f].len(),
-        ] {
-            [0, 0] => {}
+        match [self.delta[machine_ref_a.f], self.delta[machine_ref_b.f]] {
+            [[None, None], [None, None]] => {}
             _ => {
                 return Err(
                     "Final states of machine_ref_a and machine_ref_b can NOT have transitions",
@@ -420,19 +407,22 @@ impl ANFA {
         }
 
         let q0 = self.delta.len();
-        let delta_q0: DeltaQ = vec![(None, machine_ref_a.q0), (None, machine_ref_b.q0)];
-        self.delta.push(delta_q0);
+        self.delta.push([
+            Some((None, machine_ref_a.q0)),
+            Some((None, machine_ref_b.q0)),
+        ]);
 
         let f = q0 + 1;
-        self.delta.push(vec![]);
+        self.delta.push([None, None]);
 
-        self.delta[machine_ref_a.f].push((None, *&f));
-        self.delta[machine_ref_b.f].push((None, *&f));
+        self.delta[machine_ref_a.f] = [Some((None, f)), None];
+        self.delta[machine_ref_b.f] = [Some((None, f)), None];
 
         Ok(AutomataRef { q0, f })
     }
 }
 
+#[cfg(test)]
 mod tests {
     use crate::anfa::{AutomataRef, ANFA};
 
@@ -489,13 +479,13 @@ mod tests {
             "Expression 0 (nothing) pushes two states"
         );
         assert_eq!(
-            machine.delta[0].len(),
-            0,
+            machine.delta[0],
+            [None, None],
             "Expression 0 (nothing) cannot transition from q0"
         );
         assert_eq!(
-            machine.delta[1].len(),
-            0,
+            machine.delta[1],
+            [None, None],
             "Expression 0 (nothing) cannot transition from f"
         );
         assert_ne!(
@@ -518,8 +508,8 @@ mod tests {
             "Expression 1 (epsilon) pushes one state"
         );
         assert_eq!(
-            machine.delta[0].len(),
-            0,
+            machine.delta[0],
+            [None, None],
             "Expression 1 (epsilon) does not transition from q0"
         );
         assert_eq!(
@@ -544,18 +534,13 @@ mod tests {
             "Expression 'a' (literal) pushes two states"
         );
         assert_eq!(
-            machine.delta[0].len(),
-            1,
-            "Expression 'a' (literal) has one transition from q0"
-        );
-        assert_eq!(
-            machine.delta[0][0],
-            (Some('a'), 1),
+            machine.delta[0],
+            [Some((Some('a'), 1)), None],
             "Expression 'a' (literal) transitions from q0 to f along 'a'"
         );
         assert_eq!(
-            machine.delta[1].len(),
-            0,
+            machine.delta[1],
+            [None, None],
             "Expression 'a' (literal) cannot transition from f"
         );
         assert_ne!(
@@ -590,14 +575,13 @@ mod tests {
         );
 
         assert_eq!(
-            machine_a.delta[machine_ref_a.f].len(),
-            1,
+            machine_a.delta[machine_ref_a.f][1], None,
             "machine_ref_a.f was a union"
         );
 
         assert_eq!(
             machine_a.delta[machine_ref_a.f],
-            vec![(None, machine_ref_b.q0)],
+            [Some((None, machine_ref_b.q0)), None],
             "machine_ref_a.f did not epsilon transition to machine_ref_b.q0"
         );
 
@@ -643,35 +627,43 @@ mod tests {
     fn test_star() {
         let mut machine = ANFA::new();
         let machine_ref_a = machine.expr_a('a').unwrap();
+        let machine_ref_a_delta_len = machine.delta.len();
         let machine_ref_b = machine.star(&machine_ref_a).unwrap();
+        let machine_ref_b_delta_len = machine.delta.len();
+        assert_eq!(
+            machine_ref_a_delta_len + 3,
+            machine_ref_b_delta_len,
+            "Star operation adds 3 states to machine table"
+        );
         machine.in_and_fin(&machine_ref_b).unwrap();
 
         match [machine.q0, machine.f] {
             [Some(machine_q0), Some(machine_f)] => {
                 assert_eq!(
-                    machine.delta[machine_q0].len(),
-                    1,
+                    machine.delta[machine_q0][1], None,
                     "Initial state was a union"
                 );
                 assert_eq!(
-                    machine.delta[machine_q0][0].0, None,
+                    machine.delta[machine_q0][0].unwrap().0,
+                    None,
                     "Initial state did not have epsilon transition"
                 );
                 // assert_eq!(machine.delta[machine_ref_a.f]);
-                let union_state_id = machine.delta[machine_q0][0].1;
+                let union_state_id = machine.delta[machine_q0][0].unwrap().1;
                 let union_ref = &machine.delta[union_state_id];
                 assert_eq!(
                     union_ref[0],
-                    (None, machine_ref_a.q0),
+                    Some((None, machine_ref_a.q0)),
                     "After epsilon transition from q0, machine did not go left to machine_ref_a.q0"
                 );
                 assert_eq!(
                     union_ref[1],
-                    (None, machine_f),
+                    Some((None, machine_f)),
                     "After epsilon transition from q0, machine did not go right to final state"
                 );
                 assert_eq!(
-                    machine.delta[machine_ref_a.f][0].1, union_state_id,
+                    machine.delta[machine_ref_a.f][0].unwrap().1,
+                    union_state_id,
                     "Final state of machine_ref_a must transition back to union"
                 )
             }
@@ -695,7 +687,10 @@ mod tests {
             Some(machine_q0) => {
                 assert_eq!(
                     machine.delta[machine_q0],
-                    vec![(None, machine_ref_a.q0), (None, machine_ref_b.q0)],
+                    [
+                        Some((None, machine_ref_a.q0)),
+                        Some((None, machine_ref_b.q0))
+                    ],
                     "Initial state was not a union of machine_a and machine_b initial states"
                 );
             }
@@ -708,12 +703,12 @@ mod tests {
             Some(machine_f) => {
                 assert_eq!(
                     machine.delta[machine_ref_a.f],
-                    vec![(None, machine_f)],
+                    [Some((None, machine_f)), None],
                     "Final state of machine_ref_a must have epsilon transition to final state of machine"
                 );
                 assert_eq!(
                     machine.delta[machine_ref_b.f],
-                    vec![(None, machine_f)],
+                    [Some((None, machine_f)), None],
                     "Final state of machine_ref_b must have epsilon transition to final state of machine"
                 );
             }
