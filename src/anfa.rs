@@ -1,3 +1,4 @@
+use crate::alloc::vec;
 use crate::{Delta, DeltaQ, QId};
 
 /// Reference to automata initial and final states
@@ -193,7 +194,7 @@ impl ANFA {
     /// ```text
     /// machine_c = machine_a ⋅ machine_b
     /// ```
-    /// 
+    ///
     /// Concatenation is an associative, binary operation:
     ///
     /// ```text
@@ -432,83 +433,6 @@ impl ANFA {
     }
 }
 
-impl std::fmt::Display for ANFA {
-    /// Formats an ANFA implmentation as a formal definition
-    ///
-    /// # Examples
-    ///
-    /// Example 1:
-    ///
-    /// ```rust
-    /// use regexxx::anfa::{ ANFA, AutomataRef };
-    ///
-    /// let mut machine = ANFA::new();
-    /// // it's always safe to unwrap acceptor automata
-    /// let machine_ref_a: AutomataRef = machine.expr_0().unwrap();
-    /// machine.in_and_fin(&machine_ref_a).unwrap();
-    /// println!("{}", machine);
-    /// ```
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let delta_table = self
-            .delta
-            .iter()
-            .enumerate()
-            .map(|(index, delta_q)| {
-                vec![
-                    "\t",
-                    &index.to_string(),
-                    &(match delta_q.len() {
-                        0 => String::from(""),
-                        1 => vec![
-                            " × ",
-                            &(match delta_q[0].0 {
-                                Some(transition) => transition.to_string(),
-                                None => String::from("ε"),
-                            }),
-                            " × ",
-                            &delta_q[0].1.to_string(),
-                        ]
-                        .join(""),
-                        2 => vec![
-                            " × 0 × ",
-                            &delta_q[0].1.to_string(),
-                            "\n\t",
-                            &index.to_string(),
-                            " × 1 × ",
-                            &delta_q[1].1.to_string(),
-                        ]
-                        .join(""),
-                        _ => String::from("PANIC!"),
-                    }),
-                ]
-                .join("")
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
-        write!(
-            f,
-            "ANFA (
-    state: {{ 0..{} }},
-    delta:
-{}
-    q0: {},
-    f: {},
-)",
-            self.delta.len() - 1,
-            delta_table,
-            match self.q0 {
-                Some(c) => c.to_string(),
-                None => String::from("_"),
-            },
-            match self.f {
-                Some(c) => c.to_string(),
-                None => String::from("_"),
-            }
-        )
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use crate::anfa::{AutomataRef, ANFA};
 
@@ -558,8 +482,7 @@ mod tests {
 
         println!("{:#?}", machine_ref_a);
         println!("{:#?}", machine);
-        println!("{}", machine);
-        assert!(true, "Can't format expr_0");
+        assert!(true, "Can't debug format expr_0");
         assert_eq!(
             machine.delta.len(),
             2,
@@ -588,8 +511,7 @@ mod tests {
 
         println!("{:#?}", machine_ref_a);
         println!("{:#?}", machine);
-        println!("{}", machine);
-        assert!(true, "Can't format expr_1");
+        assert!(true, "Can't debug format expr_1");
         assert_eq!(
             machine.delta.len(),
             1,
@@ -615,8 +537,7 @@ mod tests {
         println!("test_expr_a formatting");
         println!("{:#?}", machine_ref_a);
         println!("{:#?}", machine);
-        println!("{}", machine);
-        assert!(true, "Can't format expr_a");
+        assert!(true, "Can't debug format expr_a");
         assert_eq!(
             machine.delta.len(),
             2,
@@ -715,8 +636,7 @@ mod tests {
 
         println!("{:#?}", machine_ref_c);
         println!("{:#?}", machine_a);
-        println!("{}", machine_a);
-        assert!(true, "Can't format concatenate");
+        assert!(true, "Can't debug format concatenate");
     }
 
     #[test]
@@ -760,8 +680,7 @@ mod tests {
 
         println!("{:#?}", machine_ref_b);
         println!("{:#?}", machine);
-        println!("{}", machine);
-        assert!(true, "Can't format star");
+        assert!(true, "Can't debug format star");
     }
 
     #[test]
@@ -805,8 +724,7 @@ mod tests {
 
         println!("{:#?}", machine_ref_c);
         println!("{:#?}", machine);
-        println!("{}", machine);
-        assert!(true, "Can't format union");
+        assert!(true, "Can't debug format union");
     }
 
     #[test]
@@ -825,8 +743,5 @@ mod tests {
         machine.in_and_fin(&machine_ref_f).unwrap();
         println!("{:#?}", machine);
         assert!(true, "Can't debug ANFA");
-
-        println!("{}", machine);
-        assert!(true, "Can't display ANFA");
     }
 }

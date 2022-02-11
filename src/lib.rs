@@ -1,3 +1,11 @@
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+
 // for ease of copy+paste:
 // ε
 // FA = (Q, Σ, δ, q0, F)
@@ -11,8 +19,9 @@ pub type QId = usize;
 pub type Transition = (Option<char>, QId);
 
 /// 1 or 2 results of δ, optionally labelled. When length is 2, operation is union.
-pub type DeltaQ = Vec<Transition>;
+pub type DeltaQ = alloc::vec::Vec<Transition>;
 
 /// Index of Delta is the first argument `State` in `δ ⊆ State × T × State`
-pub type Delta = Vec<DeltaQ>;
+pub type Delta = alloc::vec::Vec<DeltaQ>;
+
 
