@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ANFA","Augmented non-deterministic finite automaton"],["AutomataRef","Reference to automata initial and final states"]]});
