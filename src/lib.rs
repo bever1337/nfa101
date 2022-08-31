@@ -6,8 +6,8 @@ extern crate alloc;
 #[macro_use]
 extern crate std;
 
+pub mod anfa;
+
 // for ease of copy+paste:
 // ε
 // FA = (Q, Σ, δ, q0, F)
-
-pub mod anfa;
