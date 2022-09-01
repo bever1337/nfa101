@@ -2,10 +2,6 @@
 
 extern crate alloc;
 
-#[cfg(test)]
-#[macro_use]
-extern crate std;
-
 pub mod anfa;
 
 // for ease of copy+paste:

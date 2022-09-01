@@ -1,18 +1,22 @@
+// size of QId
+// size of label
 use alloc::vec;
 
 /// Unique state id
 /// TODO: Compile a regex large enough to overflow
 pub type QId = usize;
 
-/// An optional transition along an optional label to another State.
-/// When a Transition is `None`, the current state does not transition, i.e. it is a dead/trap state
-/// When a label is `None`, transition is an epsilon transition and always advances to the final state.
-pub type Transition = Option<(Option<char>, QId)>;
+/// A transition along an optional label to another State.
+/// When a label is `None`, transition is an epsilon transition
+/// and it always advances to its final state.
+pub type Transition = (Option<char>, QId);
 
-/// DeltaFunction is a vector of transition slices that satisfy
-/// the function `δ ⊆ State × T × State`. When second Transition
-/// is `Some(_)`, transition is a union
-pub type DeltaFunction = alloc::vec::Vec<[Transition; 2]>;
+/// DeltaFunction is a vector of transition tuples that satisfy
+/// the function `δ ⊆ State × T × State`. For a given state, Delta
+/// is an ordered tree where the transition's index in the slice
+/// indicates 'left' (0) or 'right' (1). When there is a right node,
+/// operation is union, i.e. a union is when `Delta[QId][1]` is `Some(_)`.
+pub type DeltaFunction = vec::Vec<(Option<Transition>, Option<Transition>)>;
 
 /// The initial and final states of an expression: (q0, f)
 pub type AutomataRef = (QId, QId);
@@ -29,8 +33,8 @@ impl ANFA {
     /// `from_expr_0`, `from_expr_1`, or `from_expr_a`
     fn new() -> ANFA {
         ANFA {
-            automata_refs: vec![],
-            delta: vec![],
+            automata_refs: vec::Vec::with_capacity(u32::MAX as usize),
+            delta: vec::Vec::with_capacity(u32::MAX as usize),
         }
     }
 
@@ -104,8 +108,14 @@ impl ANFA {
         let q0 = self.delta.len();
         let f = q0 + 1;
         let machine_a = (q0, f);
-        self.delta.push([None, None]);
-        self.delta.push([None, None]);
+        self.delta.push((
+            // push non-transitioning state
+            None, None,
+        ));
+        self.delta.push((
+            // push final state
+            None, None,
+        ));
         self.automata_refs.push(machine_a);
         Ok(())
     }
@@ -135,9 +145,13 @@ impl ANFA {
     /// --> (( 0 ))
     /// ```
     pub fn expr_1(&mut self) -> Result<(), &'static str> {
-        let q0: usize = self.delta.len();
-        let machine_a = (q0, q0);
-        self.delta.push([None, None]);
+        let q0 = self.delta.len();
+        let f = q0;
+        let machine_a = (q0, f);
+        self.delta.push((
+            // push final state
+            None, None,
+        ));
         self.automata_refs.push(machine_a);
         Ok(())
     }
@@ -171,8 +185,15 @@ impl ANFA {
         let q0 = self.delta.len();
         let f = q0 + 1;
         let machine_a = (q0, f);
-        self.delta.push([Some((Some(c), f)), None]);
-        self.delta.push([None, None]);
+        self.delta.push((
+            // push transition to Q `f` along Label `c`
+            Some((Some(c), f)),
+            None,
+        ));
+        self.delta.push((
+            // push final state
+            None, None,
+        ));
         self.automata_refs.push(machine_a);
         Ok(())
     }
@@ -180,7 +201,6 @@ impl ANFA {
     /// Concatenate machines 'a' and 'b'
     ///
     /// ```rust
-    /// #![warn(unused)]
     /// use regexxx::anfa::ANFA;
     /// let mut machine = ANFA::from_expr_a('a').unwrap(); // always safe
     /// machine.expr_a('b').unwrap(); // (should be) safe
@@ -221,10 +241,32 @@ impl ANFA {
     /// machine_n = machine_a ⋅ (machine_b ⋅ machine_c)
     /// ```
     pub fn concatenate(&mut self) -> Result<(), &'static str> {
-        let (machine_b_q0, machine_b_f) = self.automata_refs.pop().unwrap();
-        let (machine_a_q0, machine_a_f) = self.automata_refs.pop().unwrap();
+        match self.automata_refs.len() {
+            0 | 1 => {
+                return Err("Concatenation requires two operands.");
+            }
+            _ => {}
+        };
+        let (machine_b_q0, machine_b_f) = match self.automata_refs.pop() {
+            None => {
+                // exhaustive sanity check, should be impossible
+                return Err("Concatenation requires two operands. (Race condition.)");
+            }
+            Some(machine_b) => machine_b,
+        };
+        let (machine_a_q0, machine_a_f) = match self.automata_refs.pop() {
+            None => {
+                // exhaustive sanity check, should be impossible
+                return Err("Concatenation requires two operands. (Race condition.)");
+            }
+            Some(machine_a) => machine_a,
+        };
         let machine_c = (machine_a_q0, machine_b_f);
-        self.delta[machine_a_f] = [Some((None, machine_b_q0)), None]; // point 'a' at 'b'
+        self.delta[machine_a_f] = (
+            // point 'a' at 'b'
+            Some((None, machine_b_q0)),
+            None,
+        );
         self.automata_refs.push(machine_c);
         Ok(())
     }
@@ -265,16 +307,42 @@ impl ANFA {
     ///                         \-- 1 --> (( 4 ))
     /// ```
     pub fn star(&mut self) -> Result<(), &'static str> {
-        let q0 = self.delta.len();
-        let q_next = q0 + 1;
-        let f = q_next + 1;
-        let machine_b = (q0, f);
-        let (machine_a_q0, machine_a_f) = self.automata_refs.pop().unwrap();
-        self.delta.push([Some((None, q_next)), None]);
-        self.delta
-            .push([Some((None, machine_a_q0)), Some((None, f))]);
-        self.delta.push([None, None]);
-        self.delta[machine_a_f] = [Some((None, q_next)), None];
+        match self.automata_refs.len() {
+            0 => {
+                return Err("Star requires one operand.");
+            }
+            _ => {}
+        };
+        let (machine_a_q0, machine_a_f) = match self.automata_refs.pop() {
+            None => {
+                // exhaustive sanity check, should be impossible
+                return Err("Star requires one operand. (Race condition.)");
+            }
+            Some(machine_a) => machine_a,
+        };
+        let machine_b_q0 = self.delta.len();
+        let machine_b_q = machine_b_q0 + 1;
+        let machine_b_f = machine_b_q0 + 2;
+        let machine_b = (machine_b_q0, machine_b_f);
+        self.delta.push((
+            // push epsilon transition to union
+            Some((None, machine_b_q)),
+            None,
+        ));
+        self.delta.push((
+            // push union of machine_a and final state
+            Some((None, machine_a_q0)),
+            Some((None, machine_b_f)),
+        ));
+        self.delta.push((
+            // push final state
+            None, None,
+        ));
+        self.delta[machine_a_f] = (
+            // point machine_a at union
+            Some((None, machine_b_q)),
+            None,
+        );
         self.automata_refs.push(machine_b);
         Ok(())
     }
@@ -318,16 +386,48 @@ impl ANFA {
     ///     \ -- 1 --> ( 2 ) -- 'b' --> ( 3 ) --/
     /// ```
     pub fn union(&mut self) -> Result<(), &'static str> {
-        let q0 = self.delta.len();
-        let f = q0 + 1;
-        let machine_c = (q0, f);
-        let (machine_b_q0, machine_b_f) = self.automata_refs.pop().unwrap();
-        let (machine_a_q0, machine_a_f) = self.automata_refs.pop().unwrap();
-        self.delta
-            .push([Some((None, machine_a_q0)), Some((None, machine_b_q0))]);
-        self.delta.push([None, None]);
-        self.delta[machine_a_f] = [Some((None, f)), None];
-        self.delta[machine_b_f] = [Some((None, f)), None];
+        let machine_c_q0 = self.delta.len();
+        match machine_c_q0 {
+            0 | 1 => {
+                return Err("Union requires two operands.");
+            }
+            _ => {}
+        };
+        let machine_c_f = machine_c_q0 + 1;
+        let machine_c = (machine_c_q0, machine_c_f);
+        let (machine_b_q0, machine_b_f) = match self.automata_refs.pop() {
+            None => {
+                // exhaustive sanity check, should be impossible
+                return Err("Union requires two operands. (Race condition.)");
+            }
+            Some(machine_b) => machine_b,
+        };
+        let (machine_a_q0, machine_a_f) = match self.automata_refs.pop() {
+            None => {
+                // exhaustive sanity check, should be impossible
+                return Err("Union requires two operands. (Race condition.)");
+            }
+            Some(machine_a) => machine_a,
+        };
+        self.delta.push((
+            // push union transition
+            Some((None, machine_a_q0)),
+            Some((None, machine_b_q0)),
+        ));
+        self.delta.push((
+            // push final state
+            None, None,
+        ));
+        self.delta[machine_a_f] = (
+            // point machine_a at machine_c
+            Some((None, machine_c_f)),
+            None,
+        );
+        self.delta[machine_b_f] = (
+            // point machine_b at machine_c
+            Some((None, machine_c_f)),
+            None,
+        );
         self.automata_refs.push(machine_c);
         Ok(())
     }
@@ -339,13 +439,12 @@ mod tests {
 
     #[test]
     fn test_expr_0() {
-        let mut machine = ANFA::new();
-        let ref_count_0 = machine.automata_refs.len();
-        machine.expr_0().unwrap();
-        let ref_count_1 = machine.automata_refs.len();
-        let (machine_a_q0, machine_a_f) = &machine.automata_refs[machine.automata_refs.len() - 1];
-
-        assert_eq!(ref_count_0 + 1, ref_count_1, "expr_0 adds one automata ref");
+        let mut machine = ANFA::from_expr_0().unwrap();
+        assert_eq!(
+            machine.automata_refs.len(),
+            1,
+            "Expression 0 (nothing) pushes one machine"
+        );
         assert_eq!(
             machine.delta.len(),
             2,
@@ -353,29 +452,43 @@ mod tests {
         );
         assert_eq!(
             machine.delta[0],
-            [None, None],
+            (None, None),
             "Expression 0 (nothing) cannot transition from q0"
         );
         assert_eq!(
             machine.delta[1],
-            [None, None],
+            (None, None),
             "Expression 0 (nothing) cannot transition from f"
         );
+        let (machine_a_q0, machine_a_f) = &machine.automata_refs[machine.automata_refs.len() - 1];
         assert_ne!(
             machine_a_q0, machine_a_f,
             "Expression 0 (nothing) starts and ends on different states"
+        );
+
+        // run twice to make sure pushing expressions isn't affected by prior pushed expressions
+        machine.expr_0().unwrap();
+        assert_eq!(
+            machine.automata_refs.len(),
+            2,
+            "(Repeated) Expression 0 (nothing) pushes one machine"
+        );
+        assert_eq!(
+            machine.delta.len(),
+            4,
+            "(Repeated) Expression 0 (nothing) pushes two states"
         );
     }
 
     #[test]
     fn test_expr_1() {
-        let mut machine = ANFA::new();
-        let ref_count_0 = machine.automata_refs.len();
-        machine.expr_1().unwrap();
-        let ref_count_1 = machine.automata_refs.len();
-        let (machine_a_q0, machine_a_f) = &machine.automata_refs[machine.automata_refs.len() - 1];
+        let mut machine = ANFA::from_expr_1().unwrap();
 
-        assert_eq!(ref_count_0 + 1, ref_count_1, "expr_0 adds one automata ref");
+        assert_eq!(
+            machine.automata_refs.len(),
+            1,
+            "Expression 1 (epsilon) pushes one automata ref"
+        );
         assert_eq!(
             machine.delta.len(),
             1,
@@ -383,24 +496,37 @@ mod tests {
         );
         assert_eq!(
             machine.delta[0],
-            [None, None],
+            (None, None),
             "Expression 1 (epsilon) does not transition from q0"
         );
+        let (machine_a_q0, machine_a_f) = &machine.automata_refs[machine.automata_refs.len() - 1];
         assert_eq!(
             machine_a_q0, machine_a_f,
             "Expression 1 (epsilon) starts and ends on the same state"
+        );
+        // run twice to make sure pushing expressions isn't affected by prior pushed expressions
+        machine.expr_1().unwrap();
+        assert_eq!(
+            machine.automata_refs.len(),
+            2,
+            "(Repeated) Expression 1 (epsilon) pushes one automata ref"
+        );
+        assert_eq!(
+            machine.delta.len(),
+            2,
+            "(Repeated) Expression 1 (epsilon) pushes one state"
         );
     }
 
     #[test]
     fn test_expr_a() {
-        let mut machine = ANFA::new();
-        let ref_count_0 = machine.automata_refs.len();
-        machine.expr_a('a').unwrap();
-        let ref_count_1 = machine.automata_refs.len();
-        let (machine_a_q0, machine_a_f) = &machine.automata_refs[machine.automata_refs.len() - 1];
+        let mut machine = ANFA::from_expr_a('a').unwrap();
 
-        assert_eq!(ref_count_0 + 1, ref_count_1, "expr_0 adds one automata ref");
+        assert_eq!(
+            machine.automata_refs.len(),
+            1,
+            "Expression 'a' (literal) pushes one automata ref"
+        );
         assert_eq!(
             machine.delta.len(),
             2,
@@ -408,17 +534,62 @@ mod tests {
         );
         assert_eq!(
             machine.delta[0],
-            [Some((Some('a'), 1)), None],
+            (Some((Some('a'), 1)), None),
             "Expression 'a' (literal) transitions from q0 to f along 'a'"
         );
         assert_eq!(
             machine.delta[1],
-            [None, None],
+            (None, None),
             "Expression 'a' (literal) cannot transition from f"
         );
+        let (machine_a_q0, machine_a_f) = &machine.automata_refs[machine.automata_refs.len() - 1];
         assert_ne!(
             machine_a_q0, machine_a_f,
             "Expression 'a' (literal) starts and ends on different states"
+        );
+        // run twice to make sure pushing expressions isn't affected by prior pushed expressions
+        machine.expr_a('b').unwrap();
+        assert_eq!(
+            machine.automata_refs.len(),
+            2,
+            "(Repeated) Expression 'a' (literal) pushes one automata ref"
+        );
+        assert_eq!(
+            machine.delta.len(),
+            4,
+            "(Repeated) Expression 'a' (literal) pushes two states"
+        );
+    }
+
+    #[test]
+    fn test_concatenate() {
+        let mut machine = ANFA::from_expr_a('a').unwrap();
+        machine.expr_a('b').unwrap();
+        assert_eq!(
+            4,
+            machine.delta.len(),
+            "Expect four states before concatenation"
+        );
+        assert_eq!(
+            2,
+            machine.automata_refs.len(),
+            "Expect two machines before concatenation"
+        );
+        machine.concatenate().unwrap();
+        assert_eq!(
+            4,
+            machine.delta.len(),
+            "Concatenation does not create new states"
+        );
+        assert_eq!(
+            1,
+            machine.automata_refs.len(),
+            "Concatenation is a binary operation, i.e. concatenation returns one less machine"
+        );
+        assert_eq!(
+            machine.delta[1].0.unwrap(),
+            (None, 2),
+            "Concatenation transitions machine_a to machine_b along epsilon"
         );
     }
 }
