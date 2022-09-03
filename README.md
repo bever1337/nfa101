@@ -19,7 +19,6 @@ Augmented non-deterministic finite automata are defined by the 4-tuple:
 
 ```rust
 use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-use crate::regexxx;
 // RE a(b|c)*d
 let mut machine = VanillaCompiler::from_expr_a('a').unwrap();
 VanillaCompiler::expr_a(&mut machine, 'b').unwrap();
