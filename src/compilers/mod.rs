@@ -1,5 +1,6 @@
 use crate::ANFA;
 
+pub mod bidirectional_compiler;
 pub mod coverage_compiler;
 pub mod forward_compiler;
 
