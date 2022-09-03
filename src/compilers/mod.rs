@@ -1,7 +1,7 @@
 use crate::ANFA;
 
 pub mod coverage_compiler;
-pub mod vanilla_compiler;
+pub mod forward_compiler;
 
 pub trait Compiler {
   fn from_expr_0() -> Result<ANFA, &'static str>;

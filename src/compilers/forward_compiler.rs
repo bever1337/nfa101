@@ -3,17 +3,17 @@
 pub use crate::compilers::Compiler;
 use crate::ANFA;
 
-pub struct VanillaCompiler {}
-impl Compiler for VanillaCompiler {
+pub struct ForwardCompiler {}
+impl Compiler for ForwardCompiler {
     /// Returns a new ANFA that never transitions to a final state.
     ///
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let machine = VanillaCompiler::from_expr_0().unwrap(); // always safe!
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let machine = ForwardCompiler::from_expr_0().unwrap(); // always safe!
     /// ```
     fn from_expr_0() -> Result<ANFA, &'static str> {
         let mut machine_a = ANFA::new();
-        match VanillaCompiler::expr_0(&mut machine_a) {
+        match ForwardCompiler::expr_0(&mut machine_a) {
             Ok(()) => Ok(machine_a),
             Err(e) => Err(e),
         }
@@ -22,12 +22,12 @@ impl Compiler for VanillaCompiler {
     /// Returns a new ANFA in its final state.
     ///
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let machine = VanillaCompiler::from_expr_1().unwrap(); // always safe!
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let machine = ForwardCompiler::from_expr_1().unwrap(); // always safe!
     /// ```
     fn from_expr_1() -> Result<ANFA, &'static str> {
         let mut machine_a = ANFA::new();
-        match VanillaCompiler::expr_1(&mut machine_a) {
+        match ForwardCompiler::expr_1(&mut machine_a) {
             Ok(()) => Ok(machine_a),
             Err(e) => Err(e),
         }
@@ -36,12 +36,12 @@ impl Compiler for VanillaCompiler {
     /// Returns a new ANFA that transitions to a final state on 'a'.
     ///
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let mut machine = VanillaCompiler::from_expr_a('a').unwrap(); // always safe!
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let mut machine = ForwardCompiler::from_expr_a('a').unwrap(); // always safe!
     /// ```
     fn from_expr_a(c: char) -> Result<ANFA, &'static str> {
         let mut machine_a = ANFA::new();
-        match VanillaCompiler::expr_a(&mut machine_a, c) {
+        match ForwardCompiler::expr_a(&mut machine_a, c) {
             Ok(()) => Ok(machine_a),
             Err(e) => Err(e),
         }
@@ -50,9 +50,9 @@ impl Compiler for VanillaCompiler {
     /// Pushes an acceptor that never transitions, i.e. accept nothing
     ///
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let mut machine = VanillaCompiler::from_expr_a('a').unwrap(); // always safe!
-    /// match VanillaCompiler::expr_0(&mut machine) {
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let mut machine = ForwardCompiler::from_expr_a('a').unwrap(); // always safe!
+    /// match ForwardCompiler::expr_0(&mut machine) {
     ///     Ok(()) => {}
     ///     Err(err) => {
     ///       println!("expr_0 error: {}", err);
@@ -93,9 +93,9 @@ impl Compiler for VanillaCompiler {
     /// Pushes an acceptor in final state, i.e. accept anything, AKA epsilon acceptor
     ///
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let mut machine = VanillaCompiler::from_expr_a('a').unwrap(); // always safe!
-    /// match VanillaCompiler::expr_1(&mut machine) {
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let mut machine = ForwardCompiler::from_expr_a('a').unwrap(); // always safe!
+    /// match ForwardCompiler::expr_1(&mut machine) {
     ///     Ok(()) => {}
     ///     Err(err) => {
     ///       println!("expr_1 error: {}", err);
@@ -130,9 +130,9 @@ impl Compiler for VanillaCompiler {
     /// Pushes an automaton that transitions to a final state on 'a'
     ///
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let mut machine = VanillaCompiler::from_expr_a('a').unwrap(); // always safe!
-    /// match VanillaCompiler::expr_a(&mut machine, 'b') {
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let mut machine = ForwardCompiler::from_expr_a('a').unwrap(); // always safe!
+    /// match ForwardCompiler::expr_a(&mut machine, 'b') {
     ///     Ok(()) => {}
     ///     Err(err) => {
     ///       println!("expr_a error: {}", err);
@@ -173,10 +173,10 @@ impl Compiler for VanillaCompiler {
     /// Concatenate machines 'a' and 'b'
     ///
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let mut machine = VanillaCompiler::from_expr_a('a').unwrap(); // always safe
-    /// VanillaCompiler::expr_a(&mut machine, 'b').unwrap(); // (should be) safe
-    /// match VanillaCompiler::concatenate(&mut machine) {
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let mut machine = ForwardCompiler::from_expr_a('a').unwrap(); // always safe
+    /// ForwardCompiler::expr_a(&mut machine, 'b').unwrap(); // (should be) safe
+    /// match ForwardCompiler::concatenate(&mut machine) {
     ///     Ok(()) => {}
     ///     Err(err) => {
     ///         println!("Error concatenating 'a' and 'b'. Were there enough machines on the stack? Error: {}", err);
@@ -246,9 +246,9 @@ impl Compiler for VanillaCompiler {
     /// Star is a unary operation so that the last machine may be repeated 0 or more times.
     ///
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let mut machine = VanillaCompiler::from_expr_a('a').unwrap(); // always safe!
-    /// match VanillaCompiler::star(&mut machine) {
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let mut machine = ForwardCompiler::from_expr_a('a').unwrap(); // always safe!
+    /// match ForwardCompiler::star(&mut machine) {
     ///     Ok(()) => {}
     ///     Err(err) => {
     ///         println!("Error performing star operation on 'a'. Does 'a' exist? Error: {}", err);
@@ -320,10 +320,10 @@ impl Compiler for VanillaCompiler {
     }
 
     /// ```rust
-    /// use regexxx::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
-    /// let mut machine = VanillaCompiler::from_expr_a('a').unwrap(); // always safe!
-    /// VanillaCompiler::expr_a(&mut machine, 'b').unwrap(); // (should be) always safe!
-    /// match VanillaCompiler::union(&mut machine) {
+    /// use regexxx::compilers::forward_compiler::{Compiler, ForwardCompiler};
+    /// let mut machine = ForwardCompiler::from_expr_a('a').unwrap(); // always safe!
+    /// ForwardCompiler::expr_a(&mut machine, 'b').unwrap(); // (should be) always safe!
+    /// match ForwardCompiler::union(&mut machine) {
     ///     Ok(()) => {}
     ///     Err(err) => {
     ///         println!("Error peforming union. Were there enough operands? See: {}", err);
@@ -408,11 +408,11 @@ impl Compiler for VanillaCompiler {
 
 #[cfg(test)]
 mod tests {
-    use crate::compilers::vanilla_compiler::{Compiler, VanillaCompiler};
+    use crate::compilers::forward_compiler::{Compiler, ForwardCompiler};
 
     #[test]
     fn test_expr_0() {
-        let mut machine = VanillaCompiler::from_expr_0().unwrap();
+        let mut machine = ForwardCompiler::from_expr_0().unwrap();
         assert_eq!(
             machine.automata_refs.len(),
             1,
@@ -440,7 +440,7 @@ mod tests {
         );
 
         // run twice to make sure pushing expressions isn't affected by prior pushed expressions
-        VanillaCompiler::expr_0(&mut machine).unwrap();
+        ForwardCompiler::expr_0(&mut machine).unwrap();
         assert_eq!(
             machine.automata_refs.len(),
             2,
@@ -455,7 +455,7 @@ mod tests {
 
     #[test]
     fn test_expr_1() {
-        let mut machine = VanillaCompiler::from_expr_1().unwrap();
+        let mut machine = ForwardCompiler::from_expr_1().unwrap();
 
         assert_eq!(
             machine.automata_refs.len(),
@@ -478,7 +478,7 @@ mod tests {
             "Expression 1 (epsilon) starts and ends on the same state"
         );
         // run twice to make sure pushing expressions isn't affected by prior pushed expressions
-        VanillaCompiler::expr_1(&mut machine).unwrap();
+        ForwardCompiler::expr_1(&mut machine).unwrap();
         assert_eq!(
             machine.automata_refs.len(),
             2,
@@ -493,7 +493,7 @@ mod tests {
 
     #[test]
     fn test_expr_a() {
-        let mut machine = VanillaCompiler::from_expr_a('a').unwrap();
+        let mut machine = ForwardCompiler::from_expr_a('a').unwrap();
 
         assert_eq!(
             machine.automata_refs.len(),
@@ -521,7 +521,7 @@ mod tests {
             "Expression 'a' (literal) starts and ends on different states"
         );
         // run twice to make sure pushing expressions isn't affected by prior pushed expressions
-        VanillaCompiler::expr_a(&mut machine, 'b').unwrap();
+        ForwardCompiler::expr_a(&mut machine, 'b').unwrap();
         assert_eq!(
             machine.automata_refs.len(),
             2,
@@ -536,9 +536,9 @@ mod tests {
 
     #[test]
     fn test_concatenate() {
-        let mut machine = VanillaCompiler::from_expr_a('a').unwrap();
+        let mut machine = ForwardCompiler::from_expr_a('a').unwrap();
         let [_machine_a_q0, machine_a_f] = machine.automata_refs[0];
-        VanillaCompiler::expr_a(&mut machine, 'b').unwrap();
+        ForwardCompiler::expr_a(&mut machine, 'b').unwrap();
         assert_eq!(
             4,
             machine.delta.len(),
@@ -550,7 +550,7 @@ mod tests {
             "Expect two machines before concatenation"
         );
         let [machine_b_q0, _machine_b_f] = machine.automata_refs[1];
-        VanillaCompiler::concatenate(&mut machine).unwrap();
+        ForwardCompiler::concatenate(&mut machine).unwrap();
         assert_eq!(
             4,
             machine.delta.len(),
@@ -571,7 +571,7 @@ mod tests {
 
     #[test]
     fn test_star() {
-        let mut machine = VanillaCompiler::from_expr_a('a').unwrap();
+        let mut machine = ForwardCompiler::from_expr_a('a').unwrap();
         let [machine_a_q0, machine_a_f] = machine.automata_refs[0];
         assert_eq!(
             machine.automata_refs.len(),
@@ -583,7 +583,7 @@ mod tests {
             2,
             "Star pushes three new states (pre-assertion)"
         );
-        VanillaCompiler::star(&mut machine).unwrap();
+        ForwardCompiler::star(&mut machine).unwrap();
         assert_eq!(
             machine.automata_refs.len(),
             1,
@@ -604,9 +604,9 @@ mod tests {
 
     #[test]
     fn test_union() {
-        let mut machine = VanillaCompiler::from_expr_a('a').unwrap();
+        let mut machine = ForwardCompiler::from_expr_a('a').unwrap();
         let [machine_a_q0, machine_a_f] = machine.automata_refs[0];
-        VanillaCompiler::expr_a(&mut machine, 'b').unwrap();
+        ForwardCompiler::expr_a(&mut machine, 'b').unwrap();
         let [machine_b_q0, machine_b_f] = machine.automata_refs[1];
         assert_eq!(
             machine.automata_refs.len(),
@@ -618,7 +618,7 @@ mod tests {
             4,
             "Union pushes two states (pre-assertion)"
         );
-        VanillaCompiler::union(&mut machine).unwrap();
+        ForwardCompiler::union(&mut machine).unwrap();
         assert_eq!(
             machine.automata_refs.len(),
             1,

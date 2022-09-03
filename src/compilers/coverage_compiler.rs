@@ -3,7 +3,7 @@
 pub use crate::compilers::Compiler;
 use crate::ANFA;
 
-pub struct CoverageCompiler {} // VanillaCompiler, but backwards!
+pub struct CoverageCompiler {} // ForwardCompiler, but backwards!
 impl Compiler for CoverageCompiler {
     /// Returns a new ANFA that never transitions to a final state.
     ///
